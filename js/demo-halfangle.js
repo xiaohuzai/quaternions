@@ -19,7 +19,7 @@ export function initHalfangle() {
   const rulerEl = root.querySelector('#half-ruler');
   const readout = quatReadout(root.querySelector('#half-readout'));
 
-  const { scene, onFrame } = createScene(canvas, { cam: [4.4, 2.6, 6.0], target: [0, 0.1, 0] });
+  const { scene, onFrame, invalidate } = createScene(canvas, { cam: [4.4, 2.6, 6.0], target: [0, 0.1, 0] });
 
   // 左：q 驱动；右：−q 驱动
   const gL = buildGizmo(0.95); gL.position.x = -1.15;
@@ -69,6 +69,7 @@ export function initHalfangle() {
     const half = theta / 2;
     formulaEl.innerHTML =
       `θ = ${Math.round(theta)}° → q = [cos(<span class="fa">${half.toFixed(1)}°</span>), sin(<span class="fa">${half.toFixed(1)}°</span>)·n̂]`;
+    invalidate();
   }
 
   slider.addEventListener('input', () => {

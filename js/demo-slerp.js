@@ -22,7 +22,7 @@ export function initSlerp() {
   const chartCv = root.querySelector('#slerp-chart');
   const readout = quatReadout(root.querySelector('#slerp-readout'));
 
-  const { scene, onFrame } = createScene(canvas, { cam: [4.6, 2.8, 7.6], target: [0, 0, 0] });
+  const { scene, onFrame, invalidate } = createScene(canvas, { cam: [4.6, 2.8, 7.6], target: [0, 0, 0] });
 
   const xs = [-2.3, 0, 2.3];
   const darts = xs.map((x) => {
@@ -107,6 +107,7 @@ export function initSlerp() {
     slider.value = Math.round(t * 1000);
     valEl.textContent = t.toFixed(2);
     drawChart(t);
+    invalidate();
   }
 
   slider.addEventListener('input', () => {

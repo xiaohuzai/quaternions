@@ -7,12 +7,13 @@ export function initHero() {
   if (!canvas) return;
   const readout = quatReadout(document.querySelector('#hero-readout'));
 
-  const { scene, camera, controls, onFrame } = createScene(canvas, {
+  const { scene, controls, onFrame } = createScene(canvas, {
     cam: [2.6, 1.9, 4.4],
     target: [0, 0, 0],
     grid: false,
     autoRotate: true,
   });
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // 线框球：单位四元数球面的隐喻（S³ 的三维投影皮）
   const sphere = new THREE.Mesh(
@@ -51,8 +52,7 @@ export function initHero() {
   const _m = new THREE.Matrix4();
   const _x = new THREE.Vector3();
 
-  onFrame((dt) => {
-    a += dt * 0.5;
+  function placeDart() {
     const pos = new THREE.Vector3().addScaledVector(u, Math.cos(a) * R).addScaledVector(v, Math.sin(a) * R);
     dart.position.copy(pos);
     // 机头沿切线方向，机背朝外法线
@@ -61,13 +61,18 @@ export function initHero() {
     _m.makeBasis(_x, n, tangent);
     dart.quaternion.setFromRotationMatrix(_m);
     readout.set(dart.quaternion);
+  }
+
+  placeDart(); // 减少动态偏好下就停在这一帧
+
+  onFrame((dt, inv) => {
+    if (still) return;
+    a += dt * 0.5;
+    placeDart();
+    inv();
   });
 
-  // 减少动态偏好下不自动转相机
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (still) {
     controls.autoRotate = false;
-    camera.position.set(2.6, 1.9, 4.4);
-    camera.lookAt(0, 0, 0);
   }
-  void camera;
 }

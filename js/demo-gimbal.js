@@ -31,7 +31,7 @@ export function initGimbal() {
   const warn = root.querySelector('#gimbal-warn');
   const readout = quatReadout(root.querySelector('#gimbal-readout'));
 
-  const { scene, onFrame } = createScene(canvas, { cam: [3.8, 2.6, 5.4] });
+  const { scene, invalidate } = createScene(canvas, { cam: [3.8, 2.6, 5.4] });
 
   // 层级：yawG(外环,水平) → pitchG(中环) → rollG(内环) → 小飞机
   const yawG = new THREE.Group();
@@ -86,12 +86,10 @@ export function initGimbal() {
       m.emissive.set(locked ? 0xe5626a : 0x000000);
       m.emissiveIntensity = locked ? 0.55 : 0;
     }
+    invalidate();
   }
 
   for (const s of Object.values(sliders)) s.addEventListener('input', sync);
   sliders.pitch.value = 0;
   sync();
-
-  // 预设故事线：reduce-motion 用户也直接看到锁死状态? 不——初始给 0°，让用户自己拖。
-  onFrame(() => {});
 }

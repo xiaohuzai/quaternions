@@ -17,7 +17,7 @@ export function initAf() {
   const stepBtn = root.querySelector('#af-step');
   const resetBtn = root.querySelector('#af-reset');
 
-  const { scene, onFrame } = createScene(canvas, { cam: [1.8, 2.6, 7.2], target: [0, 0, 0] });
+  const { scene, invalidate } = createScene(canvas, { cam: [1.8, 2.6, 7.2], target: [0, 0, 0] });
 
   const rng = Math.random;
   let base;      // 基准姿态（复位用）
@@ -47,6 +47,7 @@ export function initAf() {
 
   function hardSet() {
     gizmos.forEach((g, i) => g.quaternion.copy(cur[i]));
+    invalidate();
   }
 
   function reset() {
@@ -79,6 +80,7 @@ export function initAf() {
           tick: (e) => {
             cur[i].slerpQuaternions(start, target, e);
             g.quaternion.copy(cur[i]);
+            invalidate();
           },
           done: () => {
             cur[i].copy(target);
@@ -94,6 +96,4 @@ export function initAf() {
 
   resetBtn.addEventListener('click', reset);
   reset();
-
-  onFrame(() => {});
 }

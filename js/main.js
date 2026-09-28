@@ -1,5 +1,6 @@
 // main.js — 装配所有演示 + 导航高亮 + 入场动画
 import { initHero } from './hero.js';
+import { initTranslate } from './demo-translate.js';
 import { initCommute } from './demo-commute.js';
 import { initHalfangle } from './demo-halfangle.js';
 import { initSlerp } from './demo-slerp.js';
@@ -9,14 +10,21 @@ import { initBackbone } from './demo-backbone.js';
 import { initCircle } from './demo-circle.js';
 
 const boot = () => {
-  initHero();
-  initCommute();
-  initHalfangle();
-  initSlerp();
-  initGimbal();
-  initAf();
-  initBackbone();
-  initCircle();
+  // 每个演示独立容错：一个模块出问题不能连坐整页
+  const inits = [
+    ['hero', initHero],
+    ['translate', initTranslate],
+    ['commute', initCommute],
+    ['halfangle', initHalfangle],
+    ['slerp', initSlerp],
+    ['gimbal', initGimbal],
+    ['af', initAf],
+    ['backbone', initBackbone],
+    ['circle', initCircle],
+  ];
+  for (const [name, init] of inits) {
+    try { init(); } catch (e) { console.error(`demo init failed: ${name}`, e); }
+  }
 
   // 入场动画（尊重 reduced-motion：CSS 里已直接显示）
   const io = new IntersectionObserver(

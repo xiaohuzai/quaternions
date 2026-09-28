@@ -49,6 +49,8 @@ export function createScene(canvas, opts = {}) {
   controls.enableZoom = false;
   // Ctrl/⌘ + 滚轮才缩放，普通滚轮留给页面滚动
   canvas.addEventListener('wheel', (e) => { controls.enableZoom = e.ctrlKey || e.metaKey; }, { passive: true });
+  // 移动端：竖向滑动翻页、横向滑动转视角（OrbitControls 默认 touch-action:none 会吞掉整页滚动）
+  canvas.style.touchAction = 'pan-y';
   if (opts.autoRotate) {
     controls.autoRotate = !REDUCED_MOTION;
     controls.autoRotateSpeed = 0.5;
@@ -79,25 +81,31 @@ export function createScene(canvas, opts = {}) {
   resize();
 
   let visible = true, raf = 0, frameCb = null, lastT = performance.now();
+  let dirty = true; // 按需渲染：静止场景不烧 GPU 帧
   const loop = (now) => {
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
-    controls.update();
-    if (frameCb) frameCb(dt);
-    renderer.render(scene, camera);
+    const moved = controls.update(); // 阻尼/autoRotate 期间持续为 true
+    if (frameCb) frameCb(dt, invalidate);
+    if (dirty || moved) {
+      renderer.render(scene, camera);
+      dirty = false;
+    }
     raf = visible ? requestAnimationFrame(loop) : 0;
   };
   const kick = () => {
     if (visible && !raf) { lastT = performance.now(); raf = requestAnimationFrame(loop); }
   };
+  // 场景状态变了（滑块/补间/模型位姿变化）就喊一声，下一帧重画
+  function invalidate() { dirty = true; kick(); }
   new IntersectionObserver(
-    (es) => { visible = es[0].isIntersecting; if (visible) kick(); },
+    (es) => { visible = es[0].isIntersecting; if (visible) { dirty = true; kick(); } },
     { rootMargin: '120px' }
   ).observe(canvas);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { dirty = true; kick(); } });
   kick();
 
-  return { scene, camera, renderer, controls, onFrame(cb) { frameCb = cb; } };
+  return { scene, camera, renderer, controls, invalidate, onFrame(cb) { frameCb = cb; } };
 }
 
 // 文字精灵（轴标签 / q 与 −q 铭牌）
@@ -176,6 +184,56 @@ export function buildGizmo(scale = 1) {
     new THREE.MeshStandardMaterial({ color: 0x8d97a3, roughness: 0.5 })
   );
   g.add(hub);
+  return g;
+}
+
+// 固定世界轴：细长、暗色、永不旋转——与机体轴（亮箭头）区分，锚定「绕哪根轴转」
+export function worldAxes(len = 4.4) {
+  const g = new THREE.Group();
+  const axes = [
+    [new THREE.Vector3(1, 0, 0), C.x, 'X'],
+    [new THREE.Vector3(0, 1, 0), C.y, 'Y'],
+    [new THREE.Vector3(0, 0, 1), C.z, 'Z'],
+  ];
+  for (const [dir, color, label] of axes) {
+    const mat = new THREE.MeshStandardMaterial({
+      color, roughness: 0.6, metalness: 0.05, transparent: true, opacity: 0.32,
+    });
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, len, 8), mat);
+    g.add(rod);
+    rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    const sp = textSprite(label, `#${color.toString(16).padStart(6, '0')}`, { scale: 0.3, italic: true });
+    sp.material.opacity = 0.55;
+    sp.position.copy(dir).multiplyScalar(len / 2 + 0.25);
+    g.add(sp);
+  }
+  return g;
+}
+
+// 当前旋转轴高亮：亮轴线 + 环形箭头 + 「绕 X 转 90°」标牌；step 期间显示，结束隐藏
+export function stepAxisMark(dir, colorHex, label) {
+  const g = new THREE.Group();
+  const y = new THREE.Vector3(0, 1, 0);
+  const mat = new THREE.MeshStandardMaterial({
+    color: colorHex, emissive: colorHex, emissiveIntensity: 0.8, roughness: 0.35,
+  });
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 4.2, 10), mat);
+  g.add(rod);
+  // 环形箭头（默认 torus 在 XY 平面、法向 +Z；放进 holder 转到垂直于旋转轴）
+  const R = 1.12, arc = Math.PI * 1.35;
+  const holder = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(R, 0.03, 8, 48, arc), mat);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.3, 12), mat);
+  tip.position.set(R * Math.cos(arc), R * Math.sin(arc), 0);
+  tip.quaternion.setFromUnitVectors(y, new THREE.Vector3(-Math.sin(arc), Math.cos(arc), 0));
+  holder.add(ring, tip);
+  holder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), y);
+  g.add(holder);
+  const sp = textSprite(label, `#${colorHex.toString(16).padStart(6, '0')}`, { scale: 0.36, italic: false, size: 56 });
+  sp.position.set(0, 2.35, 0);
+  g.add(sp);
+  g.quaternion.setFromUnitVectors(y, dir); // 整组从 +Y 摆到目标轴，标牌随转
+  g.visible = false;
   return g;
 }
 

@@ -37,7 +37,7 @@ style.css           设计系统（深色观测台主题）
 js/scene-kit.js     共用机制：场景工厂、小飞机 gizmo、四分量读数条
 js/hero.js          首屏：沿大圆巡航的姿态演示
 js/demo-*.js        各章节演示（commute / halfangle / slerp / gimbal / af / backbone / circle）
-vendor/             three.module.js + OrbitControls（本地化，无 CDN 依赖）
+vendor/             three.slim.js（按实际用到的符号树摇过的 Three.js）+ OrbitControls，无 CDN 依赖
 fonts/              Fraunces 可变字体（Latin 子集）
 ```
 
