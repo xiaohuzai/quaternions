@@ -37,7 +37,7 @@ python3 -m http.server 8000
 index.html            页面结构与全部文案
 style.css             设计系统（深色观测台主题）
 js/backbone-geom.js   骨架几何内核：NeRF 原子放置、链构建、网格工厂（共享）
-js/scene-kit.js       共用机制：场景工厂、小飞机 gizmo、四分量读数条、世界轴
+js/scene-kit.js       共用机制：场景工厂、残基坐标架 gizmo、四分量读数条、世界轴
 js/hero.js            首屏：残基骨架链
 js/demo-dihedral.js   02 节二面角演示
 js/demo-backbone.js   03 节骨架折叠机（含扭转角高亮）

@@ -26,7 +26,7 @@ export function initAf() {
   const gizmos = [];
 
   for (let i = 0; i < N; i++) {
-    const g = buildGizmo(0.5);
+    const g = buildGizmo(0.55, { labels: false }); // 残基坐标架，7 套链上不放轴标签免得拥挤
     g.position.set((i - (N - 1) / 2) * GAP, 0, 0);
     scene.add(g);
     gizmos.push(g);

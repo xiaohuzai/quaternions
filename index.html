@@ -166,13 +166,21 @@
   </div>
   <div class="af-prose">
     <p>
-      每个残基带一个<strong>局部坐标系（frame）</strong>：原点钉在 Cα 上，三根轴顺着主链的方向。
+      每个残基带一个<strong>局部坐标系（frame）</strong>：原点钉在 Cα 上，三根轴顺着主链的方向——
+      约定是 <span class="m">x</span> 轴指向 C、<span class="m">y</span> 轴朝 N 一侧。
       描述这个坐标系只需要两样东西——<strong style="color:var(--accent)">平移 t = (x, y, z)</strong>，
       3 个数，说「原点在哪儿」；<strong style="color:var(--w)">四元数 q</strong>，4 个数，说「朝向哪儿」。
       7 个数，定死一个残基的骨架摆放。
     </p>
     <p>
-      下面的演示里，每根小飞机就是一个残基的坐标系：<strong>t 定它的位置，q 定它的朝向</strong>。
+      <strong>t 和 q 是相对谁说的？</strong>都是相对<strong>全局坐标系</strong>——
+      整个结构共用的那个「世界系」，也就是最终原子坐标（PDB 文件）所在的坐标系。
+      <span class="m">t</span> = Cα 在全局系里的位置；<span class="m">q</span> = 残基系相对全局系的朝向。
+      每个残基都直接对全局系说话，<strong>不是</strong>相对上一个残基存的。
+    </p>
+    <p>
+      下面的演示里，每套<strong>坐标架</strong>就是一个残基的坐标系（蓝球 = N、骨白球 = Cα、琥珀球 = C，
+      三色箭头 = 残基系的轴）：<strong>t 定它的位置，q 定它的朝向</strong>。
       AlphaFold 每轮预测会微调每个 q（四元数乘法 + 归一化，永远是光滑的小旋转）和 t，一轮轮逼近真实结构。
     </p>
   </div>

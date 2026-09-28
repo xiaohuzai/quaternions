@@ -33,7 +33,7 @@ export function initGimbal() {
 
   const { scene, invalidate } = createScene(canvas, { cam: [3.8, 2.6, 5.4] });
 
-  // 层级：yawG(外环,水平) → pitchG(中环) → rollG(内环) → 小飞机
+  // 层级：yawG(外环,水平) → pitchG(中环) → rollG(内环) → 残基坐标架
   const yawG = new THREE.Group();
   const pitchG = new THREE.Group();
   const rollG = new THREE.Group();

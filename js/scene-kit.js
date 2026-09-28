@@ -165,49 +165,52 @@ function axisArrow(dir, colorHex, len = 1.45) {
   return g;
 }
 
-// 小飞机：锥形机头 + 机身 + 十字尾翼，朝向 +Z，姿态一眼可辨
-function buildDart(s = 1) {
+// 残基坐标架（骨架变换的具象）：Cα 原点 + 三色轴 + N/C 原子球
+// 轴约定与 backbone-geom.residueFrame 一致：x 轴指向 C，y 轴朝 N 一侧
+function buildFrameGlyph(s = 1, labels = true) {
   const g = new THREE.Group();
-  const bodyMat = new THREE.MeshStandardMaterial({ color: C.bone, roughness: 0.45, metalness: 0.12 });
-  const noseMat = new THREE.MeshStandardMaterial({ color: C.accent, roughness: 0.35, metalness: 0.25 });
-  const finMat = new THREE.MeshStandardMaterial({ color: 0xb4ae9f, roughness: 0.55, metalness: 0.08 });
+  const mat = (color, rough = 0.42) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.1 });
+  // 原子色与 backbone-geom.COL 保持一致（此处不 import 那边以避免环依赖）
+  const N_COLOR = 0x5c7cf0, CA_COLOR = 0xd8d2c4, C_COLOR = 0xd99a4e;
 
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.66, 20), noseMat);
-  nose.rotation.x = Math.PI / 2;
-  nose.position.z = 0.85;
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.19, 1.05, 20), bodyMat);
-  body.rotation.x = Math.PI / 2;
-  body.position.z = -0.05;
-  const finH = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.05, 0.42), finMat);
-  finH.position.z = -0.62;
-  const finV = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.72, 0.42), finMat);
-  finV.position.set(0, 0.33, -0.62);
-  g.add(nose, body, finH, finV);
-  g.scale.setScalar(s);
+  // Cα（原点）与 N、C 原子——∠N-Cα-C = 111°，C 摆在 +x 上
+  const ca = new THREE.Mesh(new THREE.SphereGeometry(0.11 * s, 18, 12), mat(CA_COLOR, 0.45));
+  const n = new THREE.Mesh(new THREE.SphereGeometry(0.16 * s, 18, 12), mat(N_COLOR));
+  const c = new THREE.Mesh(new THREE.SphereGeometry(0.16 * s, 18, 12), mat(C_COLOR));
+  const nPos = new THREE.Vector3(Math.cos(111 * DEG), Math.sin(111 * DEG), 0).multiplyScalar(0.58 * s);
+  const cPos = new THREE.Vector3(0.62 * s, 0, 0);
+  n.position.copy(nPos);
+  c.position.copy(cPos);
+  g.add(ca, n, c);
+  // 键：Cα–N、Cα–C
+  for (const p of [nPos, cPos]) {
+    const bond = new THREE.Mesh(new THREE.CylinderGeometry(0.028 * s, 0.028 * s, 1, 8), mat(0x8d97a3, 0.5));
+    bond.scale.set(1, p.length(), 1);
+    bond.position.copy(p).multiplyScalar(0.5);
+    bond.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p.clone().normalize());
+    g.add(bond);
+  }
+
+  // 三色轴
+  const axes = [
+    [new THREE.Vector3(1, 0, 0), C.x, 'X'],
+    [new THREE.Vector3(0, 1, 0), C.y, 'Y'],
+    [new THREE.Vector3(0, 0, 1), C.z, 'Z'],
+  ];
+  for (const [dir, color, label] of axes) {
+    g.add(axisArrow(dir, color, 0.78 * s));
+    if (labels) {
+      const sp = textSprite(label, `#${color.toString(16).padStart(6, '0')}`, { scale: 0.3 * s });
+      sp.position.copy(dir).multiplyScalar(1.02 * s);
+      g.add(sp);
+    }
+  }
   return g;
 }
 
-// 演示主角 = 小飞机 + 三色轴 + 轴标签
-export function buildGizmo(scale = 1) {
-  const g = new THREE.Group();
-  g.add(buildDart(scale));
-  const axes = [
-    [new THREE.Vector3(1, 0, 0), C.x, 'x'],
-    [new THREE.Vector3(0, 1, 0), C.y, 'y'],
-    [new THREE.Vector3(0, 0, 1), C.z, 'z'],
-  ];
-  for (const [dir, color, label] of axes) {
-    const arrow = axisArrow(dir, color, 1.4 * scale);
-    const sp = textSprite(label.toUpperCase(), `#${color.toString(16).padStart(6, '0')}`, { scale: 0.34 });
-    sp.position.copy(dir).multiplyScalar(1.62 * scale);
-    g.add(arrow, sp);
-  }
-  const hub = new THREE.Mesh(
-    new THREE.SphereGeometry(0.07 * scale, 16, 12),
-    new THREE.MeshStandardMaterial({ color: 0x8d97a3, roughness: 0.5 })
-  );
-  g.add(hub);
-  return g;
+// 演示主角 = 残基坐标架
+export function buildGizmo(scale = 1, opts = {}) {
+  return buildFrameGlyph(scale, opts.labels !== false);
 }
 
 // 固定世界轴：细长、暗色、永不旋转——与机体轴（亮箭头）区分，锚定「绕哪根轴转」
