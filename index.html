@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>四元数 · 一个交互式的 3D 讲解</title>
-<meta name="description" content="用 3D 交互讲清楚四元数是什么、怎么转：三个虚轴与非对易性、一半的角度与 q ≡ −q、SLERP 插值、万向节锁，以及 AlphaFold 里的四元数。">
-<meta property="og:title" content="四元数 · 一个交互式的 3D 讲解">
-<meta property="og:description" content="三个虚轴、一半的角度、光滑的插值——从 Hamilton 的桥到 AlphaFold 的蛋白质。">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2310141a'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-style='italic' font-size='42' fill='%23d99a4e' text-anchor='middle'%3Eq%3C/text%3E%3C/svg%3E">
+<title>蛋白质的骨架与角 · 一个交互式的 3D 讲解</title>
+<meta name="description" content="用 3D 交互讲清楚蛋白质主链与残基的各个角：二面角、φ/ψ/ω、χ 侧链角、拉马钱德兰图，以及 AlphaFold 的输出（t、q 与 (cos,sin) 扭转角编码）。">
+<meta property="og:title" content="蛋白质的骨架与角 · 一个交互式的 3D 讲解">
+<meta property="og:description" content="主链、肽键、二面角、φ/ψ/ω/χ、拉马钱德兰图——用可交互 3D 把残基的角转明白。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2310141a'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-style='italic' font-size='34' fill='%23d99a4e' text-anchor='middle'%3Eφψ%3C/text%3E%3C/svg%3E">
 <link rel="preload" href="fonts/Fraunces-italic-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/Fraunces-roman-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
@@ -19,18 +19,18 @@
 
 <nav class="nav" aria-label="章节导航">
   <a class="wordmark" href="#top">
-    <span class="zh">四元数</span>
-    <span class="en">QUATERNIONS</span>
+    <span class="zh">骨架与角</span>
+    <span class="en">PROTEIN GEOMETRY</span>
   </a>
   <div class="nav-links">
-    <a href="#s1" data-sec="s1">01 表示</a>
-    <a href="#s2" data-sec="s2">02 会转</a>
-    <a href="#s3" data-sec="s3">03 一半</a>
-    <a href="#s4" data-sec="s4">04 插值</a>
-    <a href="#s5" data-sec="s5">05 万向锁</a>
-    <a href="#s6" data-sec="s6">06 AlphaFold</a>
-    <a href="#s7" data-sec="s7">07 输出</a>
-    <a href="#s8" data-sec="s8">08 速查</a>
+    <a href="#s1" data-sec="s1">01 主链</a>
+    <a href="#s2" data-sec="s2">02 二面角</a>
+    <a href="#s3" data-sec="s3">03 主链角</a>
+    <a href="#s4" data-sec="s4">04 侧链角</a>
+    <a href="#s5" data-sec="s5">05 身份证</a>
+    <a href="#s6" data-sec="s6">06 到结构</a>
+    <a href="#s7" data-sec="s7">07 速查</a>
+    <a href="#apx" data-sec="apx">附录</a>
   </div>
 </nav>
 
@@ -38,434 +38,56 @@
   <div class="hero-grid">
     <div>
       <p class="eyebrow">AN INTERACTIVE 3D EXPLAINER</p>
-      <h1>四元数</h1>
+      <h1>蛋白质的<br>骨架与角</h1>
       <p class="sub">
-        一个数、三个虚轴，装下三维旋转的全部。
-        从 Hamilton 刻在桥上的方程，到 <strong>AlphaFold</strong> 里蛋白质的骨架——
-        这一页带你把它<strong>转</strong>明白。
+        二十种氨基酸，同一套<strong>骨架</strong>。一条链最后折成什么形状，
+        几乎全由每个残基的几个<strong>角</strong>决定——
+        主链的 <strong>φ、ψ、ω</strong>，侧链的 <strong>χ</strong>。
+        这一页用可交互的 3D 把它们一个一个<strong>转</strong>明白。
       </p>
       <div class="hero-cta">
         <a class="btn primary" href="#s1">开始阅读</a>
-        <span class="hero-hint">每个 3D 演示都可以拖拽转视角；Ctrl + 滚轮缩放。</span>
+        <span class="hero-hint">每个 3D 演示都能拖拽转视角、Ctrl/⌘+滚轮或双指缩放、右键拖拽平移、双击复位。</span>
       </div>
     </div>
     <div class="hero-canvas-box">
-      <canvas id="hero-canvas" aria-label="一个沿球面大圆飞行的姿态演示，展示四元数驱动的旋转"></canvas>
+      <canvas id="hero-canvas" aria-label="两个氨基酸残基的原子骨架，N、Cα、C、O 与侧链"></canvas>
       <div class="hero-readout">
-        <div class="qread-label">当前姿态 q</div>
+        <div class="qread-label">残基 2 的朝向 q</div>
         <div class="qread" id="hero-readout"></div>
       </div>
     </div>
   </div>
 </header>
 
-<div class="plaque reveal" role="figure" aria-label="Hamilton 的四元数方程">
-  <div class="eq">i<span class="amp">²</span> = j<span class="amp">²</span> = k<span class="amp">²</span> = ijk <span class="amp">=</span> −1</div>
-  <div class="src">1843 年 10 月 16 日，William Rowan Hamilton 把这对方程刻在都柏林布鲁姆桥的石上。四元数的故事从这里开始。</div>
+<div class="plaque reveal" role="figure" aria-label="蛋白质主链的重复单元">
+  <div class="eq">[N<span class="amp">–</span>Cα<span class="amp">–</span>C]<span class="amp">ₙ</span></div>
+  <div class="src">每个残基都是这三个原子的重复。20 种氨基酸共享这套骨架——形状的差别，藏在残基与残基之间的「角」里。</div>
 </div>
 
-<!-- ====================== 01 三种表示 ====================== -->
+<!-- ====================== 01 主链 ====================== -->
 <section class="sec wrap reveal" id="s1">
   <div class="sec-head">
     <span class="sec-num">01</span>
-    <h2>描述一个朝向，有三种语言</h2>
-  </div>
-  <p class="lede">
-    先问一个具体的问题：<strong>这架小飞机现在朝哪儿？</strong>三种写法都在回答这一个问题。
-    先看一个最简单的例子——把飞机<strong>绕 Z 轴转 30°</strong>（俯视看，就是逆时针拧了 30°），
-    三种语言各写一遍；然后你自己转一转，看三种写法怎么同步变。
-  </p>
-
-  <!-- 共享例子：同一个姿态，三种写法 -->
-  <div class="eg">
-    <figure class="eg-fig">
-      <svg viewBox="0 0 340 290" role="img" aria-label="俯视图：飞机绕 Z 轴逆时针转了 30 度">
-        <circle cx="170" cy="150" r="110" fill="none" stroke="#2a3340" stroke-dasharray="4 5" />
-        <line x1="46" y1="150" x2="294" y2="150" stroke="#e5626a" stroke-width="1.4" opacity="0.75" />
-        <line x1="170" y1="274" x2="170" y2="26" stroke="#54b06a" stroke-width="1.4" opacity="0.75" />
-        <text x="300" y="155" fill="#e5626a" font-size="15" font-family="Georgia,serif" font-style="italic">X</text>
-        <text x="176" y="34" fill="#54b06a" font-size="15" font-family="Georgia,serif" font-style="italic">Y</text>
-        <!-- 初始（灰虚线） -->
-        <line x1="170" y1="150" x2="280" y2="150" stroke="#61707f" stroke-width="2" stroke-dasharray="5 4" />
-        <polygon points="0,0 -13,7 -13,-7" fill="#61707f" transform="translate(280,150)" />
-        <!-- 转 30° 后（琥珀） -->
-        <line x1="170" y1="150" x2="265" y2="95" stroke="#d99a4e" stroke-width="2.6" />
-        <polygon points="0,0 -13,7 -13,-7" fill="#d99a4e" transform="translate(265,95) rotate(-30)" />
-        <!-- 30° 弧 -->
-        <path d="M 250 158 A 82 82 0 0 0 240 118" fill="none" stroke="#d99a4e" stroke-width="1.8" />
-        <polygon points="0,0 -8,5 -8,-5" fill="#d99a4e" transform="translate(240,118) rotate(-125)" />
-        <text x="228" y="150" fill="#d99a4e" font-size="15">30°</text>
-        <text x="170" y="252" fill="#94a0ae" font-size="13" text-anchor="middle">俯视 XY 平面 · Z 轴正对你</text>
-      </svg>
-      <figcaption>同一个例子：绕 Z 轴转 30°。灰色虚线是初始朝向，琥珀色是转完。</figcaption>
-    </figure>
-    <div class="eg-cards">
-      <div class="card">
-        <h3>欧拉角 <span class="en">Euler angles</span></h3>
-        <div class="big">α = 0°, β = 0°, γ = 30°</div>
-        <p>三个数：依次绕 X、Y、Z 各转多少度。这里前两个是 0，只有绕 Z 的 γ = 30°。</p>
-      </div>
-      <div class="card">
-        <h3>旋转矩阵 <span class="en">Rotation matrix</span></h3>
-        <div class="big eg-matrix">
-          <span class="fx">0.866</span> <span class="fy">−0.500</span> 0.000<br>
-          <span class="fx">0.500</span> <span class="fy">0.866</span> 0.000<br>
-          0.000 0.000 1.000
-        </div>
-        <p>九个数排成 3×3。每一<strong>列</strong>是一根轴转完后的新坐标：
-        <span style="color:var(--x)">红列 = X 轴的新家</span>、<span style="color:var(--y)">绿列 = Y 轴的新家</span>、蓝列 = Z 轴（这次没动）。</p>
-      </div>
-      <div class="card win">
-        <h3>四元数 <span class="en">Quaternion</span></h3>
-        <div class="big">q = [0.966, 0, 0, 0.259]</div>
-        <p>四个数：绕 Z 转 30° = 轴是 Z、角减半到 15°，于是
-        <span class="m">w = cos15° ≈ 0.966</span>、<span class="m">z = sin15° ≈ 0.259</span>（x、y 为 0）。</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 互动：同一个朝向，三种写法同步翻译 -->
-  <h3 class="sub-h">自己转一转：三种写法同步翻译</h3>
-  <div class="translate-wrap" data-demo="translate">
-    <div class="demo">
-      <div class="demo-stage"><canvas aria-label="拖动滑块改变朝向，三种表示实时同步更新"></canvas></div>
-      <div class="demo-side">
-        <div class="slider-row">
-          <label for="tr-a" style="color:var(--x)">α 绕 X</label>
-          <input type="range" id="tr-a" min="-180" max="180" step="1" value="0">
-          <span class="val" id="tr-a-val">0°</span>
-        </div>
-        <div class="slider-row">
-          <label for="tr-b" style="color:var(--y)">β 绕 Y</label>
-          <input type="range" id="tr-b" min="-180" max="180" step="1" value="0">
-          <span class="val" id="tr-b-val">0°</span>
-        </div>
-        <div class="slider-row">
-          <label for="tr-c" style="color:var(--z)">γ 绕 Z</label>
-          <input type="range" id="tr-c" min="-180" max="180" step="1" value="30">
-          <span class="val" id="tr-c-val">30°</span>
-        </div>
-        <div class="controls">
-          <button class="btn" id="tr-example">回到 30° 例子</button>
-        </div>
-        <p class="mini-note">顺序约定：先绕 X，再绕 Y，最后绕 Z（都是世界轴）。</p>
-      </div>
-    </div>
-    <div class="tr-panels">
-      <div class="tr-panel">
-        <h4>欧拉角怎么写</h4>
-        <div class="tr-flow">
-          <span class="tr-step"><b class="fx">绕 X</b><br><span class="mono" id="tr-ea">0°</span></span>
-          <span class="tr-arrow">→</span>
-          <span class="tr-step"><b class="fy">绕 Y</b><br><span class="mono" id="tr-eb">0°</span></span>
-          <span class="tr-arrow">→</span>
-          <span class="tr-step"><b class="fz">绕 Z</b><br><span class="mono" id="tr-ec">30°</span></span>
-        </div>
-      </div>
-      <div class="tr-panel">
-        <h4>旋转矩阵怎么写</h4>
-        <div class="tr-matrix mono" id="tr-matrix"></div>
-        <p class="mini-note">三列分别是 <span class="fx">X′</span>、<span class="fy">Y′</span>、<span class="fz">Z′</span> 轴的新坐标。</p>
-      </div>
-      <div class="tr-panel">
-        <h4>四元数怎么写</h4>
-        <div class="qread" id="tr-readout"></div>
-        <p class="mini-note mono" id="tr-axisnote"></p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 三种语言怎么读 -->
-  <h3 class="sub-h">三种语言分别怎么读</h3>
-
-  <div class="concept">
-    <h4><span class="concept-tag" style="color:var(--x)">A</span> 欧拉角：三次绕轴旋转的记录</h4>
-    <p>
-      三个数就是三张「转多少度」的便签，按约定的顺序贴：
-      先绕 <span class="m fx">X</span>（俯仰 pitch）转 <span class="m">α</span>，
-      再绕 <span class="m fy">Y</span>（偏航 yaw）转 <span class="m">β</span>，
-      最后绕 <span class="m fz">Z</span>（滚转 roll）转 <span class="m">γ</span>。
-      它记的是<strong>过程</strong>而不是姿态本身——所以顺序换了结果就换（<a href="#s2">02 节</a>），
-      某些角度还会三根轴卡成两根（<a href="#s5">05 节</a>）。
-    </p>
-    <div class="tr-flow concept-flow">
-      <span class="tr-step">初始<br>姿态</span><span class="tr-arrow">→</span>
-      <span class="tr-step"><b class="fx">绕 X 转 α</b><br>俯仰</span><span class="tr-arrow">→</span>
-      <span class="tr-step"><b class="fy">绕 Y 转 β</b><br>偏航</span><span class="tr-arrow">→</span>
-      <span class="tr-step"><b class="fz">绕 Z 转 γ</b><br>滚转</span><span class="tr-arrow">→</span>
-      <span class="tr-step">最终<br>姿态</span>
-    </div>
-  </div>
-
-  <div class="concept">
-    <h4><span class="concept-tag" style="color:var(--y)">B</span> 旋转矩阵：三根轴的新家</h4>
-    <p>
-      把旋转之后三根轴各自指向哪、坐标是什么，全部写下来：矩阵的
-      <span class="fx">第一列</span>是原 X 轴的新坐标、<span class="fy">第二列</span>是原 Y 轴的、
-      <span class="fz">第三列</span>是原 Z 轴的。九个数看着多，但三列必须互相垂直、长度为 1，
-      所以真正的自由度还是 3 个。它没法直观想象，但「向量乘一下就转完」最快——图形管线的最终形态就是它。
-    </p>
-  </div>
-
-  <div class="concept">
-    <h4><span class="concept-tag" style="color:var(--accent)">C</span> 四元数：轴角减半打包</h4>
-    <p>
-      一个转弯其实只需要两样：<strong>绕哪根轴</strong> <span class="m">n̂</span>、<strong>转多远</strong> <span class="m">θ</span>。
-      四元数把它们打包进 4 个数：<span class="m">q = [cos(θ/2), sin(θ/2)·n̂]</span>——
-      实部 <span class="m">w</span> 管角度，虚部 <span class="m">(x, y, z)</span> 管轴的方向。
-      注意角度被<strong>减半</strong>：这正是它躲开万向锁、还能顺滑插值的秘密（<a href="#s3">03 节</a>细讲）。
-      把它作用到向量上用「三明治」：<span class="m">v′ = q v q⁻¹</span>。
-    </p>
-    <figure class="eg-fig concept-fig">
-      <svg viewBox="0 0 340 210" role="img" aria-label="轴角示意：绕轴 n 转 θ 角">
-        <line x1="170" y1="196" x2="204" y2="18" stroke="#8d97a3" stroke-width="2" />
-        <polygon points="0,0 -10,6 -10,-6" fill="#8d97a3" transform="translate(204,18) rotate(-80)" />
-        <text x="212" y="22" fill="#94a0ae" font-size="15" font-family="Georgia,serif" font-style="italic">n̂</text>
-        <ellipse cx="170" cy="112" rx="88" ry="26" fill="none" stroke="#2a3340" stroke-dasharray="4 5" />
-        <path d="M 258 112 A 88 26 0 0 0 150 87" fill="none" stroke="#d99a4e" stroke-width="2.2" />
-        <polygon points="0,0 -9,5 -9,-5" fill="#d99a4e" transform="translate(150,87) rotate(115)" />
-        <line x1="82" y1="112" x2="258" y2="112" stroke="#e5626a" stroke-width="2.2" />
-        <polygon points="0,0 -11,6 -11,-6" fill="#e5626a" transform="translate(258,112)" />
-        <text x="266" y="117" fill="#e5626a" font-size="13">v</text>
-        <text x="118" y="72" fill="#d99a4e" font-size="15">θ</text>
-        <text x="170" y="206" fill="#94a0ae" font-size="13" text-anchor="middle">绕 n̂ 转 θ：q = [cos(θ/2), sin(θ/2)·n̂]</text>
-      </svg>
-    </figure>
-  </div>
-
-  <p class="cards-note">
-    三种语言说的是同一件事，各有一摊数学可以互相换算——你在上面的演示里看到的三个面板永远同步，就是这个原因。
-    真正拉开差距的是<strong>用起来</strong>：接下来四节，各看一个坑或一个本事。
-  </p>
-</section>
-
-<!-- ====================== 02 非对易 ====================== -->
-<section class="sec wrap reveal" id="s2">
-  <div class="sec-head">
-    <span class="sec-num">02</span>
-    <h2>先学会「转」：三个虚轴，乘法不对易</h2>
-  </div>
-  <p class="lede">
-    Hamilton 的 <span class="m">i、j、k</span> 是三个「平方等于 −1」的方向量。对旋转来说，
-    它们最关键的性质是：<strong>相乘的顺序不能换</strong>——
-    <span class="m">ij = k</span>，而 <span class="m">ji = −k</span>。
-    下面的两串动作，用的都是「绕 X 90°」和「绕 Y 90°」这两步，只是顺序不同。
-  </p>
-  <div class="demo" data-demo="commute">
-    <div class="demo-stage"><canvas aria-label="演示两次 90° 旋转按不同顺序执行会得到不同姿态"></canvas></div>
-    <div class="demo-side">
-      <div class="controls">
-        <button class="btn primary" data-run="xy">先绕 X，再绕 Y</button>
-        <button class="btn primary" data-run="yx">先绕 Y，再绕 X</button>
-        <button class="btn ghost" data-run="reset">复位</button>
-      </div>
-      <div class="formula" id="commute-formula">q = I</div>
-      <div class="qread" id="commute-readout"></div>
-    </div>
-  </div>
-  <p class="demo-note" id="commute-note">
-    <strong>试一试：</strong>两条路径各跑一遍。<strong>两步都绕固定的世界轴</strong>（场景里细长的三根）转，
-    飞机上亮的彩色轴只是被带着走——第二步看起来像在绕蓝 Z 转，只是因为第一步转完后飞机的 Z 箭头恰好倒在了世界 Y 上；
-    发光的轴线与环形箭头会标出每一步真正绕转的轴。最后对比<strong>飞机自己的绿 Y 箭头</strong>：
-    一条路指向 <span class="m">+X</span>，另一条指向 <span class="m">+Z</span>。
-    旋转不对易；四元数的乘法 <span class="m">j⊗i = −k</span> 忠实地记住了这一点——这不是缺陷，是它「懂」旋转的证据。
-  </p>
-</section>
-
-<!-- ====================== 03 半角 ====================== -->
-<section class="sec wrap reveal" id="s3">
-  <div class="sec-head">
-    <span class="sec-num">03</span>
-    <h2>一半的角度：q 与 −q 是同一个旋转</h2>
-  </div>
-  <p class="lede">
-    绕单位轴 <span class="m">n̂</span> 转 <span class="m">θ</span>，对应四元数
-    <span class="m">q = [cos(θ/2), sin(θ/2)·n̂]</span>——注意角度被<strong>减半</strong>。
-    作用到向量上用「三明治」：<span class="m">v′ = q v q⁻¹</span>。
-    减半带来一个奇妙结论：转满 360° 时 <span class="m">q</span> 变成 <span class="m">−q</span>，
-    而 <strong>−q 和 q 表示同一个旋转</strong>；要转满 720°，四元数才回到起点。
-  </p>
-  <div class="demo" data-demo="halfangle">
-    <div class="demo-stage"><canvas aria-label="左侧姿态由 q 驱动、右侧由 −q 驱动，两者始终一致"></canvas></div>
-    <div class="demo-side">
-      <div class="controls">
-        <div class="seg" role="group" aria-label="旋转轴">
-          <button data-axis="x" aria-pressed="false">X</button>
-          <button data-axis="y" aria-pressed="true">Y</button>
-          <button data-axis="z" aria-pressed="false">Z</button>
-        </div>
-        <button class="btn" id="half-play">播放</button>
-      </div>
-      <div class="slider-row">
-        <label for="half-angle">θ</label>
-        <input type="range" id="half-angle" min="0" max="720" step="1" value="0">
-        <span class="val" id="half-angle-val">0°</span>
-      </div>
-      <div class="ruler" id="half-ruler" aria-hidden="true"></div>
-      <div class="qread" id="half-readout"></div>
-      <div class="formula" id="half-formula"></div>
-    </div>
-  </div>
-  <p class="demo-note">
-    两架小飞机，<strong>左边由 q 驱动，右边由 −q 驱动</strong>——盯住它们，永远一致。
-    标尺上 <span class="m">360°</span> 处标着 <span class="m">−q₀</span>：
-    那一刻实部 <span class="m">w</span> 变了号，但姿态一模一样。
-    这个「双倍覆盖」不是数学游戏——神经网络输出 q 时差一个正负号完全无所谓（<a href="#s6">06 节</a>会再用到它）。
-  </p>
-</section>
-
-<!-- ====================== 04 SLERP ====================== -->
-<section class="sec wrap reveal" id="s4">
-  <div class="sec-head">
-    <span class="sec-num">04</span>
-    <h2>光滑地走：三种插值，三条路径</h2>
-  </div>
-  <p class="lede">
-    从姿态 A 过渡到姿态 B，「怎么走」最能分出高下。三架飞机同一起点、同一终点：
-    <strong>欧拉角</strong>逐分量插值，常常绕远路；<strong>四元数分量线性插值</strong>（lerp）路径对了，
-    速度仍不匀；<strong>SLERP</strong> 沿大圆匀速滑行。相机不晕、动画自然，靠的就是这条。
-  </p>
-  <div class="demo" data-demo="slerp">
-    <div class="demo-stage"><canvas aria-label="三架飞机分别用欧拉角、lerp、SLERP 从姿态 A 过渡到姿态 B"></canvas></div>
-    <div class="demo-side">
-      <div class="slider-row">
-        <label for="slerp-t">t</label>
-        <input type="range" id="slerp-t" min="0" max="1000" step="1" value="0">
-        <span class="val" id="slerp-t-val">0.00</span>
-      </div>
-      <div class="controls">
-        <button class="btn" id="slerp-play">播放</button>
-        <button class="btn ghost" id="slerp-reset">回到 A</button>
-      </div>
-      <div class="qread" id="slerp-readout"></div>
-      <div class="chart-box">
-        <canvas id="slerp-chart" aria-label="三种插值的旋转角随 t 变化曲线"></canvas>
-        <div class="chart-legend">
-          <span class="key"><span class="swatch" style="background:var(--x)"></span>欧拉角</span>
-          <span class="key"><span class="swatch" style="background:var(--y)"></span>lerp</span>
-          <span class="key"><span class="swatch" style="background:var(--z)"></span>SLERP</span>
-        </div>
-      </div>
-      <div class="formula" id="slerp-formula"></div>
-    </div>
-  </div>
-  <p class="demo-note">
-    看下方的<strong>角度曲线</strong>：SLERP 是一条直线（匀速），lerp 是一条缓曲线（中途偷懒），
-    欧拉角则可能先冲后停、甚至绕远。<span class="m">q(t) = [sin((1−t)Ω)·q₀ + sin(tΩ)·q₁] / sin Ω</span>，其中
-    <span class="m">cos Ω = q₀·q₁</span>——名字里的「球面」，指的正是单位四元数所在的那只球。
-  </p>
-</section>
-
-<!-- ====================== 05 万向节锁 ====================== -->
-<section class="sec wrap reveal" id="s5">
-  <div class="sec-head">
-    <span class="sec-num">05</span>
-    <h2>反面教材：万向节锁</h2>
-  </div>
-  <p class="lede">
-    这是欧拉角的死穴，也是四元数登场的经典理由。三只陀螺环各管一个角：
-    <strong style="color:var(--z)">偏航 yaw</strong>、<strong style="color:var(--x)">俯仰 pitch</strong>、
-    <strong style="color:var(--y)">滚转 roll</strong>。把 pitch 拉到 ±90°，
-    外环和内环就共线了——三个自由度瞬间只剩两个。
-  </p>
-  <div class="demo" data-demo="gimbal">
-    <div class="demo-stage"><canvas aria-label="三只嵌套陀螺环演示万向节锁"></canvas></div>
-    <div class="demo-side">
-      <div class="slider-row">
-        <label for="g-yaw" style="color:var(--z)">yaw</label>
-        <input type="range" id="g-yaw" min="0" max="360" step="1" value="0">
-        <span class="val" id="g-yaw-val">0°</span>
-      </div>
-      <div class="slider-row">
-        <label for="g-pitch" style="color:var(--x)">pitch</label>
-        <input type="range" id="g-pitch" min="-100" max="100" step="1" value="0">
-        <span class="val" id="g-pitch-val">0°</span>
-      </div>
-      <div class="slider-row">
-        <label for="g-roll" style="color:var(--y)">roll</label>
-        <input type="range" id="g-roll" min="0" max="360" step="1" value="0">
-        <span class="val" id="g-roll-val">0°</span>
-      </div>
-      <div class="warn" id="gimbal-warn">
-        ⚠ 外环与内环共线了——现在再拖 yaw 和 roll，转的是<strong>同一根轴</strong>，
-        有一个方向你再也够不着。这就是万向节锁。
-      </div>
-      <div class="qread" id="gimbal-readout"></div>
-    </div>
-  </div>
-  <p class="demo-note">
-    锁死的瞬间，看右侧的四元数读数：<strong>q 平静如常</strong>。同一个姿态，
-    四个分量平平无奇——四元数的世界里根本不存在那根会重合的轴。
-    阿波罗计划时代工程师要小心翼翼绕开的坑，被四个数轻松填平。
-  </p>
-</section>
-
-<!-- ====================== 06 AlphaFold ====================== -->
-<section class="sec wrap reveal" id="s6">
-  <div class="sec-head">
-    <span class="sec-num">06</span>
-    <h2>AlphaFold 里的四元数</h2>
+    <h2>主链是什么：N、Cα、C 与肽键</h2>
   </div>
   <div class="af-prose">
     <p>
-      蛋白质是一条氨基酸链，AlphaFold2 的结构模块给<strong>每个残基</strong>都配了一个局部坐标系
-      （frame）：原点钉在 Cα 上，轴向顺着 N、C 等主链原子。整条蛋白质的形状，
-      就是一串 frame 的「位置 + 旋转」。
-    </p>
-    <p>
-      旋转那一半，存的正是<strong>单位四元数</strong>：比 3×3 矩阵省 5 个数；
-      合法性约束只有一句「归一化」；网络每轮预测要微调每个 frame 时，
-      做的是一次四元数乘法再归一化——<strong>小幅修正永远是小幅旋转</strong>，光滑、可导、不跳变。
-    </p>
-    <p>
-      你在 <a href="#s3">03 节</a>看到的「<span class="m">q ≡ −q</span>」在这里也是真实的工程细节：
-      网络吐出的四元数差一个正负号，旋转意义完全相同。而评估结构用的 FAPE 损失，
-      本质就是在这些 frame 之间做对齐、量误差——底层的几何词汇还是四元数与旋转矩阵。
-    </p>
-  </div>
-  <div class="demo" data-demo="af" style="margin-top:26px">
-    <div class="demo-stage"><canvas aria-label="一串残基坐标系，每次预测更新做光滑的小幅旋转"></canvas></div>
-    <div class="demo-side">
-      <div class="controls">
-        <button class="btn primary" id="af-step">模拟一轮预测更新</button>
-        <button class="btn ghost" id="af-reset">复位</button>
-      </div>
-      <div class="formula" id="af-formula">q ← normalize( q ⊗ Δq )</div>
-    </div>
-  </div>
-  <p class="demo-note">
-    每按一次，链条上每个 frame 都朝各自的新目标<strong>平滑滑过去</strong>——
-    连按几次，就是一轮轮预测迭代。没有跳变、没有锁死，这正是四元数被选中的原因。
-  </p>
-</section>
-
-<!-- ====================== 07 AlphaFold 的输出清单 ====================== -->
-<section class="sec wrap reveal" id="s7">
-  <div class="sec-head">
-    <span class="sec-num">07</span>
-    <h2>AlphaFold 到底输出什么：一张残基身份证</h2>
-  </div>
-
-  <h3 class="sub-h">先认识骨架：主链、肽键、能转的单键</h3>
-  <div class="af-prose">
-    <p>
-      蛋白质是一条氨基酸链。撑起形状的<strong>骨架（backbone）</strong>是每个残基重复的三个原子：
+      撑起蛋白质形状的<strong>骨架（backbone）</strong>是每个残基重复的三个原子：
       <strong style="color:var(--z)">N</strong>（氮）、<strong style="color:var(--w)">Cα</strong>（α 碳，侧链挂在它身上）、
       <strong style="color:var(--accent)">C</strong>（羰基碳，身上还挂着一个红色的 <strong style="color:var(--x)">O</strong>）。
       一个残基的 C 与下一个残基的 N 之间由<strong>肽键</strong>相连——整条链就是
       <span class="m">[N–Cα–C]ₙ</span> 的重复。
     </p>
     <p>
-      骨架上真正<strong>能转的只有两根单键</strong>：<span class="m">N–Cα</span>（转动角叫
-      <span class="m">φ</span>）和 <span class="m">Cα–C</span>（转动角叫 <span class="m">ψ</span>）。
+      骨架上真正<strong>能转的只有两根单键</strong>：<span class="m">N–Cα</span> 和 <span class="m">Cα–C</span>。
       肽键 <span class="m">C–N</span> 有双键性质，把周围的原子锁死在同一个平面里（<strong>肽平面</strong>），
-      它的扭转角 <span class="m">ω</span> 几乎恒为 180°。所以主链每个残基只有两个真正的自由角 φ、ψ——
-      这就是为什么拉马钱德兰图只有横纵两个轴。侧链挂 Cα 逐节扭转，叫
-      <span class="m">χ₁ ∼ χ₄</span>，侧链越长用到的越多。
+      它的扭转角几乎恒为 180°。侧链挂在 Cα 上，沿单键逐节扭转——这些「转多少度」，
+      就是接下来要认识的各种<strong>角</strong>。
     </p>
     <p>
-      这些角都是<strong>四个原子的二面角</strong>：按 A–B–C–D 排四个原子，绕中间的 B–C 键转动，
-      A 端和 D 端的夹角就是扭转角——你在下面的折叠机里拖任意一个滑块，高亮的就是它对应的四个原子和旋转轴。
+      首屏那条链可以拖着看：蓝 = N、骨白 = Cα、琥珀 = C、红 = O、绿 = 侧链。
+      记住这个配色，后面全用它。
     </p>
   </div>
 
@@ -518,10 +140,41 @@
       <text x="292" y="112" fill="#5c7cf0" font-size="17" font-family="Georgia,serif" font-style="italic">ω</text>
     </svg>
     <figcaption>
-      主链重复单元。灰白 = Cα、蓝 = N、琥珀 = C、红 = O；加粗的琥珀键是肽键。
-      弧线标出三个主链扭转角各自绕哪根键：ψ 绕 Cα–C、ω 绕肽键 C–N、φ 绕 N–Cα。
+      主链重复单元。加粗的琥珀键是肽键；弧线标出三个主链扭转角各自绕哪根键：
+      ψ 绕 Cα–C、ω 绕肽键 C–N、φ 绕 N–Cα——下一节先弄懂「扭转角」到底是什么。
     </figcaption>
   </figure>
+</section>
+
+<!-- ====================== 02 二面角 ====================== -->
+<section class="sec wrap reveal" id="s2">
+  <div class="sec-head">
+    <span class="sec-num">02</span>
+    <h2>二面角：四个原子，绕中间的键转</h2>
+  </div>
+  <p class="lede">
+    蛋白质里所有的「角」都是同一类东西——<strong>二面角</strong>。
+    按 <span class="m">A–B–C–D</span> 排四个原子，中间的 <span class="m">B–C</span> 是旋转轴：
+    绕它转动时，<strong>A 端和 D 端的夹角</strong>就是二面角。
+    拖下面的滑块亲手转一转。
+  </p>
+  <div class="demo" data-demo="dihedral">
+    <div class="demo-stage"><canvas aria-label="四个原子的二面角，滑块绕 B-C 键转动 D 端"></canvas></div>
+    <div class="demo-side">
+      <div class="slider-row">
+        <label for="dh-angle">二面角</label>
+        <input type="range" id="dh-angle" min="-180" max="180" step="1" value="60">
+        <span class="val" id="dh-angle-val">60°</span>
+      </div>
+      <div class="formula" id="dh-read" style="white-space:normal"></div>
+      <p class="mini-note">灰色 = 两端原子 A、D；琥珀键 B–C 是旋转轴，环形箭头标出转动方向。
+      真实蛋白里 B–C 就是骨架或侧链上的那根单键。</p>
+    </div>
+  </div>
+  <p class="demo-note">
+    三个特殊的二面角给它们起了名字——<strong>φ、ψ、ω</strong>（在主链上）和 <strong>χ</strong>（在侧链上）。
+    名字不同，几何完全是同一回事：四个原子、一根中间键、一个角度。
+  </p>
 
   <figure class="eg-fig wide-fig">
     <svg viewBox="0 0 620 190" role="img" aria-label="二面角示意：四个原子 A B C D，绕中间 B C 键转动">
@@ -536,43 +189,47 @@
       <text x="179" y="128" fill="#94a0ae" font-size="15" font-family="Georgia,serif" font-style="italic">B</text>
       <text x="324" y="46" fill="#94a0ae" font-size="15" font-family="Georgia,serif" font-style="italic">C</text>
       <text x="464" y="142" fill="#94a0ae" font-size="15" font-family="Georgia,serif" font-style="italic">D</text>
-      <!-- 绕 B–C 的转动弧 -->
       <ellipse cx="257" cy="82" rx="62" ry="20" fill="none" stroke="#d99a4e" stroke-width="1.8" stroke-dasharray="4 5" transform="rotate(-8 257 82)" />
       <path d="M 312 76 A 62 20 0 0 0 216 60" fill="none" stroke="#d99a4e" stroke-width="2.4" transform="rotate(-8 257 82)" />
       <text x="228" y="40" fill="#d99a4e" font-size="14">绕 B–C 转</text>
-      <text x="300" y="172" fill="#94a0ae" font-size="12.5" text-anchor="middle">四个原子的二面角：扭转角 = 从 B–C 轴看，A 端与 D 端的夹角</text>
+      <text x="300" y="172" fill="#94a0ae" font-size="12.5" text-anchor="middle">扭转角 = 从 B–C 轴看，A 端与 D 端的夹角</text>
     </svg>
-    <figcaption>
-      扭转角的定义：四个原子 A–B–C–D，中间的 B–C（琥珀）是旋转轴。
-      绕它转，A 端和 D 端的夹角就是这个角——折叠机里每个滑块都对应这样一串四个原子。
-    </figcaption>
   </figure>
+</section>
 
-  <h3 class="sub-h">每个残基的「身份证」：t、q 与 7 个扭转角</h3>
-  <div class="af-prose">
-    <p>
-      结构模块对<strong>每个残基</strong>吐出一张「身份证」，两部分。第一部分是<strong>骨架变换</strong>：
-      平移 <span class="m">t = (x, y, z)</span>，3 个数，说「这个残基的坐标系原点（Cα）钉在空间的哪儿」；
-      四元数 <span class="m">q</span>，4 个数，说「坐标系朝哪儿」——就是 <a href="#s6">06 节</a>的主角。
-      合起来 3 + 4 = 7 个数，定死一个局部坐标系。
-    </p>
-    <p>
-      第二部分是 <strong>7 个扭转角</strong>：主链的 <span class="m">ω、φ、ψ</span>（ω 是肽键两侧，
-      几乎恒为 180°；φ、ψ 是主链真正能扭的两处——拉马钱德兰图的横纵轴），
-      加侧链的 <span class="m">χ₁ ∼ χ₄</span>（侧链上的可旋转单键，侧链越长用得越多）。
-      每个角不直接输出度数，而是输出一个<strong>二维向量</strong>，归一化到单位长度后当作
-      <span class="m">(cos, sin)</span> 用——一共 7 × 2 = 14 个数。
-    </p>
+<!-- ====================== 03 主链角 ====================== -->
+<section class="sec wrap reveal" id="s3">
+  <div class="sec-head">
+    <span class="sec-num">03</span>
+    <h2>φ、ψ、ω：主链的三个角</h2>
   </div>
-  <div class="demo" data-demo="backbone" style="margin-top:26px">
+  <p class="lede">
+    每个残基贡献两个真正的自由角——<span class="m">φ</span>（绕 N–Cα 转）和
+    <span class="m">ψ</span>（绕 Cα–C 转）；肽键的 <span class="m">ω</span> 被锁在 180° 附近。
+    每个角都是一串四个原子的二面角，定义如下：
+  </p>
+
+  <div class="cheats" style="margin-bottom:26px">
+    <div class="cheat">
+      <h4>φ（绕 N–Cα）</h4>
+      <div class="f">C<sub>i-1</sub>–N<sub>i</sub>–Cα<sub>i</sub>–C<sub>i</sub></div>
+    </div>
+    <div class="cheat">
+      <h4>ψ（绕 Cα–C）</h4>
+      <div class="f">N<sub>i</sub>–Cα<sub>i</sub>–C<sub>i</sub>–N<sub>i+1</sub></div>
+    </div>
+    <div class="cheat">
+      <h4>ω（绕肽键 C–N）</h4>
+      <div class="f">Cα<sub>i</sub>–C<sub>i</sub>–N<sub>i+1</sub>–Cα<sub>i+1</sub>　≈ 180°</div>
+    </div>
+  </div>
+
+  <div class="demo" data-demo="backbone">
     <div class="demo-stage"><canvas aria-label="两个残基的骨架，拖动 φ/ψ/ω/χ 扭转角实时折叠"></canvas></div>
     <div class="demo-side">
-      <div class="controls" style="gap:6px; font-size:12px; color:var(--faint)">
-        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--z)"></span> N</span>
-        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--w)"></span> Cα</span>
-        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent)"></span> C</span>
-        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--x)"></span> O</span>
-        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--y)"></span> 侧链</span>
+      <div>
+        <div class="ram-title">拉马钱德兰图（φ–ψ）</div>
+        <canvas id="ram-plot" aria-label="拉马钱德兰图：φ 与 ψ 的取值平面，可拖动"></canvas>
       </div>
       <div class="bb-explain" id="bb-explain">拖动任意一个角的滑块——高亮的就是它对应的四个原子和旋转轴。</div>
       <div class="slider-row">
@@ -623,28 +280,101 @@
           <button data-chi="4" aria-pressed="false" title="赖氨酸：4 个 χ">K·4</button>
         </div>
       </div>
+      <div class="controls" style="gap:6px; font-size:12px; color:var(--faint)">
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--z)"></span> N</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--w)"></span> Cα</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent)"></span> C</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--x)"></span> O</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--y)"></span> 侧链</span>
+      </div>
       <div class="formula" id="bb-t">t = (0.00, 0.00, 0.00) Å</div>
       <div class="qread" id="bb-q"></div>
     </div>
   </div>
   <p class="demo-note">
     <strong>骨架折叠机：</strong>拖 <span class="m">ψ、φ</span>，主链绕单键转动；拖 <span class="m">ω</span>
-    到 <span class="m">0°</span> 可以看到罕见的顺式肽键（顺式会让侧链撞在一起，真实蛋白里极少）。
-    按住任意滑块时，它对应的<strong>四个原子与旋转轴</strong>会高亮、其余变暗，右上角同步说明它是哪串原子的二面角。
-    按「α 螺旋 / β 折叠」一键摆到拉马钱德兰图的著名区域。
-    下方 <span class="m">t</span> 是残基 2 的 Cα 位置（3 个数），右侧四条读数是它的朝向
-    <span class="m">q</span>（4 个数）——原子坐标就是用它们加扭转角「长」出来的。
+    到 <span class="m">0°</span> 可以看到罕见的顺式肽键（会让侧链撞在一起，真实蛋白里极少）。
+    按住任意滑块时，对应的<strong>四个原子与旋转轴</strong>高亮、其余变暗，解说行同步写出定义。
+    <strong>拉马钱德兰图</strong>与 φ/ψ 双向联动——在图上拖点，或者按「α 螺旋 / β 折叠」看两个著名区域。
+    图上绿、蓝两块是自然界允许 φ、ψ 取值的<strong>偏好区域</strong>：不是随便什么角度都能折叠成稳定结构。
+    下方 <span class="m">t</span> 与 <span class="m">q</span> 是残基 2 的坐标系（见 <a href="#s5">05 节</a>）。
   </p>
-  <div class="af-prose" style="margin-top:34px">
+</section>
+
+<!-- ====================== 04 侧链角 ====================== -->
+<section class="sec wrap reveal" id="s4">
+  <div class="sec-head">
+    <span class="sec-num">04</span>
+    <h2>χ：侧链的角</h2>
+  </div>
+  <div class="af-prose">
     <p>
-      那为什么扭转角要绕个弯、输出 <strong>(cos, sin)</strong> 而不是直接回归角度？
-      因为角度有悬崖：<span class="m">−180°</span> 和 <span class="m">+180°</span> 是同一个方向，
-      数值上却差着 360——网络在这条缝上学得死去活来。改成单位向量，方向连续、处处光滑；
-      网络要是「拿不准」，就把向量输出得短一些，归一化后照样投影回圆上。
-      损失函数也简单：就是两支单位向量之间的距离。
+      侧链挂在 Cα 上，是一串碳（以及氮、氧、硫）接出来的「尾巴」。尾巴上的每一根单键都能转，
+      转动角依次叫 <span class="m">χ₁、χ₂、χ₃、χ₄</span>——还是二面角那一套，
+      只是四个原子换成了侧链上的原子（比如 <span class="m">χ₁ = N–Cα–Cβ–Cγ</span>）。
+      <strong>侧链越长，用到的 χ 越多</strong>：
+    </p>
+    <div class="cheats" style="margin:18px 0">
+      <div class="cheat">
+        <h4>甘氨酸 Gly</h4>
+        <div class="f">0 个 χ（没有侧链碳）</div>
+      </div>
+      <div class="cheat">
+        <h4>丝氨酸 Ser / 半胱氨酸</h4>
+        <div class="f">1 个 χ</div>
+      </div>
+      <div class="cheat">
+        <h4>天冬氨酸 Asp / 亮氨酸</h4>
+        <div class="f">2 个 χ</div>
+      </div>
+      <div class="cheat">
+        <h4>谷氨酸 Glu / 甲硫氨酸</h4>
+        <div class="f">3 个 χ</div>
+      </div>
+      <div class="cheat">
+        <h4>赖氨酸 Lys / 精氨酸</h4>
+        <div class="f">4 个 χ</div>
+      </div>
+      <div class="cheat">
+        <h4>取值偏好</h4>
+        <div class="f">±60°、180°（交错构象 rotamer）</div>
+      </div>
+    </div>
+    <p>
+      侧链的 χ 不是随便乱转的：绕单键转动时，相邻基团错开（<strong>交错构象</strong>）能量最低，
+      所以 χ 偏好扎堆在 <span class="m">±60°</span> 和 <span class="m">180°</span> 附近——
+      这些稳定组合叫 <strong>rotamer（旋转异构体）</strong>，结构生物学里查表用的就是它。
+      上一节的折叠机切到 <span class="m">K·4</span> 拖 χ 滑块，就能看到侧链一节一节展开。
     </p>
   </div>
-  <div class="demo" data-demo="circle" style="margin-top:20px">
+</section>
+
+<!-- ====================== 05 身份证 ====================== -->
+<section class="sec wrap reveal" id="s5">
+  <div class="sec-head">
+    <span class="sec-num">05</span>
+    <h2>残基的「身份证」：t、q 与 7×2 个数</h2>
+  </div>
+  <div class="af-prose">
+    <p>
+      AlphaFold2 的结构模块对<strong>每个残基</strong>输出两部分。第一部分是<strong>骨架变换</strong>：
+      平移 <span class="m">t = (x, y, z)</span>，3 个数，说「这个残基的坐标系原点（Cα）钉在空间的哪儿」；
+      朝向 <span class="m">q</span>，4 个数，说「坐标系朝哪儿」——用的是四元数（<a href="#apx">附录</a>有速成）。
+      合起来 3 + 4 = 7 个数，定死一个局部坐标系。
+    </p>
+    <p>
+      第二部分是 <strong>7 个扭转角</strong>：主链的 <span class="m">ω、φ、ψ</span> 加侧链的
+      <span class="m">χ₁ ∼ χ₄</span>——就是这一页前三节讲的那些角。
+      每个角不直接输出度数，而是输出一个<strong>二维向量</strong>，归一化到单位长度后当作
+      <span class="m">(cos, sin)</span> 用——一共 7 × 2 = 14 个数。
+    </p>
+    <p>
+      为什么绕这个弯？因为角度有悬崖：<span class="m">−180°</span> 和 <span class="m">+180°</span> 是同一个方向，
+      数值上却差着 360——网络在这条缝上学得死去活来。改成单位向量，方向连续、处处光滑；
+      网络要是「拿不准」，就把向量输出得短一些，归一化后照样投影回圆上。
+    </p>
+  </div>
+  <div class="demo" data-demo="circle">
     <div class="demo-stage">
       <canvas class="short" aria-label="单位圆：拖动原始输出向量，看归一化与角度提取"></canvas>
     </div>
@@ -654,56 +384,68 @@
   </div>
   <p class="demo-note">
     把灰点拖过 <span class="m">±180°</span> 那条红缝——<strong>角度数字会跳变，琥珀色箭头却连续地转过去</strong>。
-    这就是 AlphaFold 用向量编码角度的全部理由：让网络要学的东西处处光滑。
+    损失函数就是两支单位向量之间的距离（绿虚线）。这就是 AlphaFold 用向量编码每个角的全部理由。
   </p>
 </section>
 
-<!-- ====================== 08 速查表 ====================== -->
-<section class="sec wrap reveal" id="s8">
+<!-- ====================== 06 从角到结构 ====================== -->
+<section class="sec wrap reveal" id="s6">
   <div class="sec-head">
-    <span class="sec-num">08</span>
+    <span class="sec-num">06</span>
+    <h2>从角到三维结构</h2>
+  </div>
+  <div class="af-prose">
+    <p>
+      原子坐标并不是凭空输出的。给定每个残基的 <span class="m">(t, q)</span> 与全部扭转角，
+      用<strong>标准键长、键角</strong>（N–Cα 1.46Å、Cα–C 1.53Å、C–N 1.33Å……）把原子一个个「长」出来——
+      03 节的折叠机干的就是这件事（它用的算法叫 NeRF，神经网络侧也常用同一套几何）。
+    </p>
+    <p>
+      AlphaFold 每轮预测会微调每个残基的 <span class="m">q</span>（四元数乘法 + 归一化，
+      保证永远是光滑的小旋转）和各个扭转角，一轮一轮逼近真实结构。
+      下面的演示模拟这个过程：按一次，就是一轮「预测更新」。
+    </p>
+  </div>
+  <div class="demo" data-demo="af">
+    <div class="demo-stage"><canvas aria-label="一串残基坐标系，每次预测更新做光滑的小幅旋转"></canvas></div>
+    <div class="demo-side">
+      <div class="controls">
+        <button class="btn primary" id="af-step">模拟一轮预测更新</button>
+        <button class="btn ghost" id="af-reset">复位</button>
+      </div>
+      <div class="formula" id="af-formula">q ← normalize( q ⊗ Δq )</div>
+      <p class="mini-note">每根小飞机 = 一个残基的局部坐标系（t 定位置、q 定朝向）。连按几次看迭代。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== 07 速查表 ====================== -->
+<section class="sec wrap reveal" id="s7">
+  <div class="sec-head">
+    <span class="sec-num">07</span>
     <h2>速查表</h2>
   </div>
   <p class="lede">把这一页的结论收进口袋。</p>
   <div class="cheats">
     <div class="cheat">
-      <h4>定义</h4>
-      <div class="f">q = <span class="fw">w</span> + <span class="fx">x</span>i + <span class="fy">y</span>j + <span class="fz">z</span>k</div>
+      <h4>主链重复</h4>
+      <div class="f">[N–Cα–C]ₙ + 肽键 C–N（ω≈180°）</div>
     </div>
     <div class="cheat">
-      <h4>虚轴乘法</h4>
-      <div class="f"><span class="fx">i</span>²=<span class="fy">j</span>²=<span class="fz">k</span>²=−1<br>
-      <span class="fx">i</span><span class="fy">j</span>=<span class="fz">k</span>　<span class="fy">j</span><span class="fx">i</span>=−<span class="fz">k</span><br>
-      <span class="fy">j</span><span class="fz">k</span>=<span class="fx">i</span>　<span class="fz">k</span><span class="fy">j</span>=−<span class="fx">i</span><br>
-      <span class="fz">k</span><span class="fx">i</span>=<span class="fy">j</span>　<span class="fx">i</span><span class="fz">k</span>=−<span class="fy">j</span></div>
+      <h4>二面角定义</h4>
+      <div class="f">A–B–C–D 绕 B–C 转，A 端与 D 端的夹角</div>
     </div>
     <div class="cheat">
-      <h4>轴角 → 四元数</h4>
-      <div class="f">q = [cos(θ/2), sin(θ/2)·n̂]</div>
+      <h4>φ / ψ / ω</h4>
+      <div class="f">φ: C–N–Cα–C　ψ: N–Cα–C–N<br>ω: Cα–C–N–Cα（≈180°）</div>
     </div>
     <div class="cheat">
-      <h4>旋转一个向量</h4>
-      <div class="f">v′ = q v q⁻¹　（v 作纯四元数）</div>
+      <h4>χ 侧链角</h4>
+      <div class="f">χ₁: N–Cα–Cβ–Cγ … 越长越多<br>偏好 ±60°、180°（rotamer）</div>
     </div>
     <div class="cheat">
-      <h4>合成（先 p 后 q）</h4>
-      <div class="f">q<sub>合</sub> = q ⊗ p</div>
-    </div>
-    <div class="cheat">
-      <h4>双倍覆盖</h4>
-      <div class="f">q ≡ −q　（同一旋转）<br>720° 才回到 q 本尊</div>
-    </div>
-    <div class="cheat">
-      <h4>逆 / 共轭</h4>
-      <div class="f">q⁻¹ = q* = [<span class="fw">w</span>, −<span class="fx">x</span>, −<span class="fy">y</span>, −<span class="fz">z</span>]<br>（单位四元数时）</div>
-    </div>
-    <div class="cheat">
-      <h4>SLERP</h4>
-      <div class="f">q(t) = [sin((1−t)Ω)q₀ + sin(tΩ)q₁] / sinΩ<br>cosΩ = q₀·q₁</div>
-    </div>
-    <div class="cheat">
-      <h4>单位化</h4>
-      <div class="f">表示旋转 ⟺ ‖q‖ = 1</div>
+      <h4>关键键长</h4>
+      <div class="f">N–Cα 1.46　Cα–C 1.53　C–N 1.33 Å</div>
     </div>
     <div class="cheat">
       <h4>残基 frame（AlphaFold）</h4>
@@ -713,12 +455,184 @@
       <h4>扭转角编码</h4>
       <div class="f">θ → (cos θ, sin θ)（单位向量）<br>7 个角 × 2 = 14 个数，无 ±180° 悬崖</div>
     </div>
+    <div class="cheat">
+      <h4>拉马钱德兰图</h4>
+      <div class="f">φ–ψ 平面；α 螺旋 ≈ (−57°, −47°)<br>β 折叠 ≈ (−135°, 135°)</div>
+    </div>
+    <div class="cheat">
+      <h4>四元数（朝向 q）</h4>
+      <div class="f">q ≡ −q，720° 才回本尊<br>详见<a href="#apx">附录</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== 附录 四元数 ====================== -->
+<section class="sec wrap reveal" id="apx">
+  <div class="sec-head">
+    <span class="sec-num">附录</span>
+    <h2>四元数速成：q 到底是什么</h2>
+  </div>
+  <p class="lede">
+    05 节的朝向 <span class="m">q</span> 用的是<strong>四元数</strong>——一个实部、三个虚部，
+    <span class="m">q = [w, x, y, z]</span>。要读懂 AlphaFold 的输出，三个关键点就够。
+  </p>
+
+  <h3 class="sub-h">A · 同一个朝向，三种写法</h3>
+  <div class="eg">
+    <figure class="eg-fig">
+      <svg viewBox="0 0 340 290" role="img" aria-label="俯视图：绕 Z 轴逆时针转 30 度">
+        <circle cx="170" cy="150" r="110" fill="none" stroke="#2a3340" stroke-dasharray="4 5" />
+        <line x1="46" y1="150" x2="294" y2="150" stroke="#e5626a" stroke-width="1.4" opacity="0.75" />
+        <line x1="170" y1="274" x2="170" y2="26" stroke="#54b06a" stroke-width="1.4" opacity="0.75" />
+        <text x="300" y="155" fill="#e5626a" font-size="15" font-family="Georgia,serif" font-style="italic">X</text>
+        <text x="176" y="34" fill="#54b06a" font-size="15" font-family="Georgia,serif" font-style="italic">Y</text>
+        <line x1="170" y1="150" x2="280" y2="150" stroke="#61707f" stroke-width="2" stroke-dasharray="5 4" />
+        <polygon points="0,0 -13,7 -13,-7" fill="#61707f" transform="translate(280,150)" />
+        <line x1="170" y1="150" x2="265" y2="95" stroke="#d99a4e" stroke-width="2.6" />
+        <polygon points="0,0 -13,7 -13,-7" fill="#d99a4e" transform="translate(265,95) rotate(-30)" />
+        <path d="M 250 158 A 82 82 0 0 0 240 118" fill="none" stroke="#d99a4e" stroke-width="1.8" />
+        <polygon points="0,0 -8,5 -8,-5" fill="#d99a4e" transform="translate(240,118) rotate(-125)" />
+        <text x="228" y="150" fill="#d99a4e" font-size="15">30°</text>
+        <text x="170" y="252" fill="#94a0ae" font-size="13" text-anchor="middle">俯视 XY 平面 · Z 轴正对你</text>
+      </svg>
+      <figcaption>例子：绕 Z 轴转 30°。灰色虚线是初始朝向，琥珀色是转完。</figcaption>
+    </figure>
+    <div class="eg-cards">
+      <div class="card">
+        <h3>欧拉角 <span class="en">Euler angles</span></h3>
+        <div class="big">α = 0°, β = 0°, γ = 30°</div>
+        <p>三个数：依次绕 X、Y、Z 各转多少度。直观，但顺序影响结果、特定角度会卡死。</p>
+      </div>
+      <div class="card">
+        <h3>旋转矩阵 <span class="en">Rotation matrix</span></h3>
+        <div class="big eg-matrix">
+          <span class="fx">0.866</span> <span class="fy">−0.500</span> 0.000<br>
+          <span class="fx">0.500</span> <span class="fy">0.866</span> 0.000<br>
+          0.000 0.000 1.000
+        </div>
+        <p>九个数。每一<strong>列</strong>是一根轴转完后的新坐标：红列 = X 轴的新家、绿列 = Y 轴的新家。</p>
+      </div>
+      <div class="card win">
+        <h3>四元数 <span class="en">Quaternion</span></h3>
+        <div class="big">q = [0.966, 0, 0, 0.259]</div>
+        <p>四个数：<span class="m">w = cos15°</span>、<span class="m">z = sin15°</span>——
+        轴是 Z、角度减半。紧凑、无奇点，AlphaFold 存的就是它。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="translate-wrap" data-demo="translate" style="margin-top:22px">
+    <div class="demo">
+      <div class="demo-stage"><canvas aria-label="拖动滑块改变朝向，三种表示实时同步更新"></canvas></div>
+      <div class="demo-side">
+        <div class="slider-row">
+          <label for="tr-a" style="color:var(--x)">α 绕 X</label>
+          <input type="range" id="tr-a" min="-180" max="180" step="1" value="0">
+          <span class="val" id="tr-a-val">0°</span>
+        </div>
+        <div class="slider-row">
+          <label for="tr-b" style="color:var(--y)">β 绕 Y</label>
+          <input type="range" id="tr-b" min="-180" max="180" step="1" value="0">
+          <span class="val" id="tr-b-val">0°</span>
+        </div>
+        <div class="slider-row">
+          <label for="tr-c" style="color:var(--z)">γ 绕 Z</label>
+          <input type="range" id="tr-c" min="-180" max="180" step="1" value="30">
+          <span class="val" id="tr-c-val">30°</span>
+        </div>
+        <div class="controls">
+          <button class="btn" id="tr-example">回到 30° 例子</button>
+        </div>
+        <p class="mini-note">顺序约定：先绕 X，再绕 Y，最后绕 Z（都是世界轴）。</p>
+      </div>
+    </div>
+    <div class="tr-panels">
+      <div class="tr-panel">
+        <h4>欧拉角怎么写</h4>
+        <div class="tr-flow">
+          <span class="tr-step"><b class="fx">绕 X</b><br><span class="mono" id="tr-ea">0°</span></span>
+          <span class="tr-arrow">→</span>
+          <span class="tr-step"><b class="fy">绕 Y</b><br><span class="mono" id="tr-eb">0°</span></span>
+          <span class="tr-arrow">→</span>
+          <span class="tr-step"><b class="fz">绕 Z</b><br><span class="mono" id="tr-ec">30°</span></span>
+        </div>
+      </div>
+      <div class="tr-panel">
+        <h4>旋转矩阵怎么写</h4>
+        <div class="tr-matrix mono" id="tr-matrix"></div>
+        <p class="mini-note">三列分别是 <span class="fx">X′</span>、<span class="fy">Y′</span>、<span class="fz">Z′</span> 轴的新坐标。</p>
+      </div>
+      <div class="tr-panel">
+        <h4>四元数怎么写</h4>
+        <div class="qread" id="tr-readout"></div>
+        <p class="mini-note mono" id="tr-axisnote"></p>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub-h">B · q 与 −q 是同一个旋转</h3>
+  <p class="demo-note" style="margin-top:0">
+    轴角 <span class="m">q = [cos(θ/2), sin(θ/2)·n̂]</span> 里角度被<strong>减半</strong>：
+    转满 360° 时 <span class="m">q</span> 变成 <span class="m">−q</span>，而两者是同一个旋转；
+    720° 才回到本尊。网络输出 q 差一个正负号完全无所谓——这在训练里是真实的工程细节。
+  </p>
+  <div class="demo" data-demo="halfangle">
+    <div class="demo-stage"><canvas aria-label="左侧姿态由 q 驱动、右侧由 −q 驱动，两者始终一致"></canvas></div>
+    <div class="demo-side">
+      <div class="controls">
+        <div class="seg" role="group" aria-label="旋转轴">
+          <button data-axis="x" aria-pressed="false">X</button>
+          <button data-axis="y" aria-pressed="true">Y</button>
+          <button data-axis="z" aria-pressed="false">Z</button>
+        </div>
+        <button class="btn" id="half-play">播放</button>
+      </div>
+      <div class="slider-row">
+        <label for="half-angle">θ</label>
+        <input type="range" id="half-angle" min="0" max="720" step="1" value="0">
+        <span class="val" id="half-angle-val">0°</span>
+      </div>
+      <div class="ruler" id="half-ruler" aria-hidden="true"></div>
+      <div class="qread" id="half-readout"></div>
+      <div class="formula" id="half-formula"></div>
+    </div>
+  </div>
+
+  <h3 class="sub-h">C · 为什么不用欧拉角：万向节锁</h3>
+  <p class="demo-note" style="margin-top:0">
+    俯仰转到 ±90° 时，欧拉角的外环与内环共线，三个自由度只剩两个——
+    四元数表示同一个姿态毫无异常。这是 AlphaFold 选 q 的理由之一。
+  </p>
+  <div class="demo" data-demo="gimbal">
+    <div class="demo-stage"><canvas aria-label="三只嵌套陀螺环演示万向节锁"></canvas></div>
+    <div class="demo-side">
+      <div class="slider-row">
+        <label for="g-yaw" style="color:var(--z)">yaw</label>
+        <input type="range" id="g-yaw" min="0" max="360" step="1" value="0">
+        <span class="val" id="g-yaw-val">0°</span>
+      </div>
+      <div class="slider-row">
+        <label for="g-pitch" style="color:var(--x)">pitch</label>
+        <input type="range" id="g-pitch" min="-100" max="100" step="1" value="0">
+        <span class="val" id="g-pitch-val">0°</span>
+      </div>
+      <div class="slider-row">
+        <label for="g-roll" style="color:var(--y)">roll</label>
+        <input type="range" id="g-roll" min="0" max="360" step="1" value="0">
+        <span class="val" id="g-roll-val">0°</span>
+      </div>
+      <div class="warn" id="gimbal-warn">
+        ⚠ 外环与内环共线了——现在再拖 yaw 和 roll，转的是<strong>同一根轴</strong>，
+        有一个方向你再也够不着。这就是万向节锁。
+      </div>
+      <div class="qread" id="gimbal-readout"></div>
+    </div>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <span>为学习 AlphaFold 而作 · 拖拽每个演示都可以转视角</span>
+    <span>为学习蛋白质结构与 AlphaFold 而作 · 拖拽每个演示都可以转视角</span>
     <span>Three.js 渲染 · <a href="https://github.com/xiaohuzai/quaternions" target="_blank" rel="noopener">GitHub 仓库</a> · MIT License</span>
   </div>
 </footer>

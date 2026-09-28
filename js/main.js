@@ -1,26 +1,26 @@
 // main.js — 装配所有演示 + 导航高亮 + 入场动画
 import { initHero } from './hero.js';
-import { initTranslate } from './demo-translate.js';
-import { initCommute } from './demo-commute.js';
-import { initHalfangle } from './demo-halfangle.js';
-import { initSlerp } from './demo-slerp.js';
-import { initGimbal } from './demo-gimbal.js';
-import { initAf } from './demo-af.js';
+import { initDihedral } from './demo-dihedral.js';
 import { initBackbone } from './demo-backbone.js';
+import { initRamachandran } from './ramachandran.js';
+import { initAf } from './demo-af.js';
 import { initCircle } from './demo-circle.js';
+import { initTranslate } from './demo-translate.js';
+import { initHalfangle } from './demo-halfangle.js';
+import { initGimbal } from './demo-gimbal.js';
 
 const boot = () => {
   // 每个演示独立容错：一个模块出问题不能连坐整页
   const inits = [
     ['hero', initHero],
-    ['translate', initTranslate],
-    ['commute', initCommute],
-    ['halfangle', initHalfangle],
-    ['slerp', initSlerp],
-    ['gimbal', initGimbal],
-    ['af', initAf],
+    ['dihedral', initDihedral],
     ['backbone', initBackbone],
+    ['ramachandran', initRamachandran],
+    ['af', initAf],
     ['circle', initCircle],
+    ['translate', initTranslate],
+    ['halfangle', initHalfangle],
+    ['gimbal', initGimbal],
   ];
   for (const [name, init] of inits) {
     try { init(); } catch (e) { console.error(`demo init failed: ${name}`, e); }

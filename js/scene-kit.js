@@ -49,8 +49,31 @@ export function createScene(canvas, opts = {}) {
   controls.enableZoom = false;
   // Ctrl/⌘ + 滚轮才缩放，普通滚轮留给页面滚动
   canvas.addEventListener('wheel', (e) => { controls.enableZoom = e.ctrlKey || e.metaKey; }, { passive: true });
-  // 移动端：竖向滑动翻页、横向滑动转视角（OrbitControls 默认 touch-action:none 会吞掉整页滚动）
+  // 移动端：竖向滑动翻页、横向滑动转视角；双指捏合缩放/平移归 OrbitControls（touch-action 不含 pinch-zoom）
   canvas.style.touchAction = 'pan-y';
+
+  // 双击复位：缩丢了/转晕了随时回初始机位（平滑过渡）
+  const camHome = camera.position.clone();
+  const targetHome = controls.target.clone();
+  canvas.addEventListener('dblclick', () => {
+    const p0 = camera.position.clone();
+    const t0 = controls.target.clone();
+    animate({
+      dur: 420,
+      tick: (e) => {
+        camera.position.lerpVectors(p0, camHome, e);
+        controls.target.lerpVectors(t0, targetHome, e);
+        controls.update();
+        invalidate();
+      },
+    });
+  });
+
+  // 每个画布的常驻操作提示
+  const hint = document.createElement('div');
+  hint.className = 'canvas-hint';
+  hint.textContent = '拖拽转视角 · Ctrl/⌘+滚轮或双指缩放 · 右键拖拽平移 · 双击复位';
+  canvas.parentElement?.appendChild(hint);
   if (opts.autoRotate) {
     controls.autoRotate = !REDUCED_MOTION;
     controls.autoRotateSpeed = 0.5;
@@ -207,33 +230,6 @@ export function worldAxes(len = 4.4) {
     sp.position.copy(dir).multiplyScalar(len / 2 + 0.25);
     g.add(sp);
   }
-  return g;
-}
-
-// 当前旋转轴高亮：亮轴线 + 环形箭头 + 「绕 X 转 90°」标牌；step 期间显示，结束隐藏
-export function stepAxisMark(dir, colorHex, label) {
-  const g = new THREE.Group();
-  const y = new THREE.Vector3(0, 1, 0);
-  const mat = new THREE.MeshStandardMaterial({
-    color: colorHex, emissive: colorHex, emissiveIntensity: 0.8, roughness: 0.35,
-  });
-  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 4.2, 10), mat);
-  g.add(rod);
-  // 环形箭头（默认 torus 在 XY 平面、法向 +Z；放进 holder 转到垂直于旋转轴）
-  const R = 1.12, arc = Math.PI * 1.35;
-  const holder = new THREE.Group();
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(R, 0.03, 8, 48, arc), mat);
-  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.3, 12), mat);
-  tip.position.set(R * Math.cos(arc), R * Math.sin(arc), 0);
-  tip.quaternion.setFromUnitVectors(y, new THREE.Vector3(-Math.sin(arc), Math.cos(arc), 0));
-  holder.add(ring, tip);
-  holder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), y);
-  g.add(holder);
-  const sp = textSprite(label, `#${colorHex.toString(16).padStart(6, '0')}`, { scale: 0.36, italic: false, size: 56 });
-  sp.position.set(0, 2.35, 0);
-  g.add(sp);
-  g.quaternion.setFromUnitVectors(y, dir); // 整组从 +Y 摆到目标轴，标牌随转
-  g.visible = false;
   return g;
 }
 

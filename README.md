@@ -1,24 +1,26 @@
-# quaternions · 四元数可视化指南
+# 蛋白质的骨架与角 · 交互式 3D 图解
 
 **在线阅读：<https://xiaohuzai.github.io/quaternions/>**
 
-一个纯静态、无构建的交互式 3D 讲解页：用 Three.js 把四元数「转」明白——
-从 Hamilton 刻在布鲁姆桥上的方程，到 AlphaFold 里蛋白质残基的坐标系。
+一个纯静态、无构建的交互式 3D 讲解页：把蛋白质主链与残基的各个角「转」明白——
+二面角、φ/ψ/ω、χ 侧链角、拉马钱德兰图，以及 AlphaFold 的输出表示
+（t、q 与 (cos,sin) 扭转角编码）。
 
 ## 内容目录
 
 | 章节 | 内容 | 形式 |
 | --- | --- | --- |
-| 01 | 描述朝向的三种语言（欧拉角 / 旋转矩阵 / 四元数） | 对比卡 |
-| 02 | 三个虚轴与乘法不可交换（ij = k，ji = −k） | 3D 演示：两条 90° 路径 |
-| 03 | 一半的角度：q = [cos(θ/2), sin(θ/2)·n̂] 与 q ≡ −q 双覆盖 | 3D 演示：q 与 −q 双飞机 |
-| 04 | 插值：欧拉角 / lerp / SLERP 三条路径与角度-时间曲线 | 3D 演示 + 2D 曲线图 |
-| 05 | 万向节锁：三只陀螺环 vs 平静的四元数 | 3D 演示 |
-| 06 | AlphaFold 结构模块里的 frame 与四元数 | 3D 演示：残基链预测更新 |
-| 07 | AlphaFold 的输出清单：t(3) + q(4) 与 7×2 个扭转角 (cos, sin) 编码 | 3D 骨架折叠机 + 单位圆 |
-| 08 | 速查表 | 公式卡 |
+| 01 | 主链是什么：N–Cα–C 重复、肽键、羰基 O | 图文 + 主链 SVG |
+| 02 | 二面角：四个原子绕中间键转 | 3D 演示（可拖）+ SVG |
+| 03 | φ、ψ、ω：主链的三个角 | 骨架折叠机（φ/ψ/ω/χ 实时重建、定义高亮）+ 拉马钱德兰图联动 |
+| 04 | χ：侧链角与 rotamer | 图文 + 残基对照表 |
+| 05 | 残基身份证：t、q 与 7×2 个数 | 3D + (cos,sin) 单位圆演示 |
+| 06 | 从角到三维结构（NeRF 重建、预测迭代） | 3D 演示 |
+| 07 | 速查表 | 公式卡 |
+| 附录 | 四元数速成：三种表示 / q≡−q / 万向节锁 | 3 个 3D 演示 |
 
-每个演示都可以拖拽旋转视角，Ctrl/⌘ + 滚轮缩放（普通滚轮保留给页面滚动）。
+每个演示都可以拖拽旋转视角，Ctrl/⌘ + 滚轮（或触屏双指）缩放，右键拖拽平移，双击复位视角
+（普通滚轮保留给页面滚动；触屏上竖向滑动翻页、横向滑动转视角）。
 
 ## 本地预览
 
@@ -32,13 +34,21 @@ python3 -m http.server 8000
 ## 结构
 
 ```
-index.html          页面结构与全部文案
-style.css           设计系统（深色观测台主题）
-js/scene-kit.js     共用机制：场景工厂、小飞机 gizmo、四分量读数条
-js/hero.js          首屏：沿大圆巡航的姿态演示
-js/demo-*.js        各章节演示（commute / halfangle / slerp / gimbal / af / backbone / circle）
-vendor/             three.slim.js（按实际用到的符号树摇过的 Three.js）+ OrbitControls，无 CDN 依赖
-fonts/              Fraunces 可变字体（Latin 子集）
+index.html            页面结构与全部文案
+style.css             设计系统（深色观测台主题）
+js/backbone-geom.js   骨架几何内核：NeRF 原子放置、链构建、网格工厂（共享）
+js/scene-kit.js       共用机制：场景工厂、小飞机 gizmo、四分量读数条、世界轴
+js/hero.js            首屏：残基骨架链
+js/demo-dihedral.js   02 节二面角演示
+js/demo-backbone.js   03 节骨架折叠机（含扭转角高亮）
+js/ramachandran.js    03 节拉马钱德兰图（与 φ/ψ 滑块双向联动）
+js/demo-af.js         06 节预测更新演示
+js/demo-circle.js     05 节 (cos,sin) 单位圆
+js/demo-translate.js  附录·三种表示同步翻译
+js/demo-halfangle.js  附录·q ≡ −q 双覆盖
+js/demo-gimbal.js     附录·万向节锁
+vendor/               three.slim.js（按实际用到的符号树摇过的 Three.js）+ OrbitControls，无 CDN 依赖
+fonts/                Fraunces 可变字体（Latin 子集）
 ```
 
 除 Three.js 与 Fraunces 字体外无任何运行时依赖；GitHub Pages 直接托管，无构建步骤。

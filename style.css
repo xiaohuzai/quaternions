@@ -163,7 +163,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .hero-readout {
   position: absolute;
   right: 14px;
-  bottom: 12px;
+  bottom: 44px;
   background: rgba(11, 15, 20, 0.72);
   border: 1px solid var(--line-soft);
   border-radius: 10px;
@@ -171,6 +171,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
+.hero-canvas-box .canvas-hint { left: 12px; right: auto; }
 .hero-readout .qread-label {
   font-size: 11px;
   color: var(--faint);
@@ -296,6 +297,21 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   background: #0b0f14;
 }
 .demo-stage canvas.short { height: 360px; }
+
+/* 画布常驻操作提示（右下角，不挡交互） */
+.canvas-hint {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  font-size: 11.5px;
+  color: var(--faint);
+  background: rgba(11, 15, 20, 0.55);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  padding: 3px 9px;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
 .demo-side {
   border-left: 1px solid var(--line-soft);
   padding: 20px 20px 18px;
@@ -504,19 +520,6 @@ input[type="range"]::-moz-range-thumb {
 }
 .ruler .lbl.mark { color: var(--accent); }
 
-/* 角度-时间小图（04 用） */
-.chart-box { border: 1px solid var(--line-soft); border-radius: 8px; overflow: hidden; }
-.chart-box canvas { width: 100%; height: 96px; display: block; background: var(--bg-soft); }
-.chart-legend {
-  display: flex;
-  gap: 14px;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: var(--muted);
-  border-top: 1px solid var(--line-soft);
-}
-.chart-legend .key { display: inline-flex; align-items: center; gap: 6px; }
-.chart-legend .swatch { width: 10px; height: 3px; border-radius: 2px; }
 
 /* ---------- AlphaFold 一节 ---------- */
 .af-prose { max-width: 46em; color: var(--muted); }
@@ -643,6 +646,24 @@ footer a { color: var(--muted); }
 .bb-explain b { color: var(--accent); }
 .bb-explain .mono { font-size: 0.92em; color: var(--muted); }
 
+/* 拉马钱德兰图（折叠机侧栏内） */
+.ram-title {
+  font-size: 12.5px;
+  color: var(--faint);
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+#ram-plot {
+  width: 100%;
+  height: 240px;
+  display: block;
+  background: var(--bg-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
 .wide-fig { max-width: 100%; margin: 26px 0 8px; }
 
 .tr-flow {
@@ -664,39 +685,8 @@ footer a { color: var(--muted); }
 .tr-step b { font-weight: 600; }
 .tr-step .mono { font-size: 12.5px; color: var(--text); }
 .tr-arrow { color: var(--faint); font-size: 15px; }
-.tr-matrix .fx, .concept .fx { color: var(--x); }
-.concept .fy { color: var(--y); }
-.concept .fz { color: var(--z); }
+.tr-matrix .fx { color: var(--x); }
 
-.concept {
-  margin: 26px 0;
-  max-width: 50em;
-}
-.concept h4 {
-  margin: 0 0 10px;
-  font-size: 17px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.concept-tag {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 20px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-.concept p { margin: 0 0 12px; color: var(--muted); }
-.concept p strong { color: var(--text); font-weight: 600; }
-.concept .m { font-family: var(--font-mono); font-size: 0.9em; color: var(--text); }
-.concept-flow { margin: 4px 0 2px; }
-.concept-fig { max-width: 380px; margin: 16px 0 0; }
 
 @media (max-width: 960px) {
   .eg { grid-template-columns: 1fr; }
