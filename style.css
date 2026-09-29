@@ -666,6 +666,39 @@ footer a { color: var(--muted); }
 
 .wide-fig { max-width: 100%; margin: 26px 0 8px; }
 
+/* 希腊字母读音速记条（01 清单） */
+.pron {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 20px 0 8px;
+}
+.pron-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.pron-item .sym {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 30px;
+  color: var(--accent);
+  line-height: 1;
+  flex: none;
+}
+.pron-item .say b { color: var(--text); font-weight: 600; }
+.pron .mini-note { grid-column: 1 / -1; margin: 2px 2px 0; }
+
+@media (max-width: 960px) {
+  .pron { grid-template-columns: 1fr 1fr; }
+}
+
 .tr-flow {
   display: flex;
   align-items: center;
