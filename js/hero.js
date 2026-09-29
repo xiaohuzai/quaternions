@@ -16,7 +16,7 @@ export function initHero() {
   });
 
   const chain = computeChain({ psi: -47, omega: 180, phi: -57, chi1: 60, chi2: -60, chi3: 60, chi4: -60 });
-  const bbPairs = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]];
+  const bbPairs = [[0, 1], [1, 2], [3, 4], [4, 5]]; // 主链单键段；肽键 C₁–N₂ 单独走双线
   const scPairs = [[4, 0], [0, 1], [1, 2], [2, 3], [3, 4]];
 
   ['N', 'CA', 'C', 'N', 'CA', 'C'].forEach((k, i) => {
@@ -29,6 +29,10 @@ export function initHero() {
     setBond(m, chain.bb[a], chain.bb[b]);
     scene.add(m);
   }
+  // 肽键 C₁–N₂：全站统一琥珀双线
+  const pepPair = makeBondPair(BCOL.pep);
+  pepPair.forEach((m) => scene.add(m));
+  setBondPair(pepPair, chain.bb[2], chain.bb[3]);
   chain.sc.forEach((p) => { const m = makeAtom(RAD.SC, COL.S); m.position.copy(p); scene.add(m); });
   for (const [a, b] of scPairs) {
     const m = makeBond(BCOL.sc);

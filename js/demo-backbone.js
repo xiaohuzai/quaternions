@@ -36,15 +36,17 @@ export function initBackbone() {
   const atoms = ['N', 'CA', 'C', 'N', 'CA', 'C'].map((k) => makeAtom(RAD[k], COL[k]));
   const scAtoms = [0, 1, 2, 3, 4].map(() => makeAtom(RAD.SC, COL.S));
   const oAtoms = [makeAtom(RAD.O, COL.O), makeAtom(RAD.O, COL.O)];
-  const bbPairs = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]];
+  const bbPairs = [[0, 1], [1, 2], [3, 4], [4, 5]]; // 主链单键段；肽键 C₁–N₂ 单独走双线
   const bbBonds = bbPairs.map(() => makeBond(BCOL.bb));
+  // 肽键 C₁–N₂：全站统一琥珀双线
+  const pepPair = makeBondPair(BCOL.pep);
   // -1 代表骨架上的 CA2（pos[4]）
   const scBondPairs = [[-1, 0], [0, 1], [1, 2], [2, 3], [3, 4]];
   const scBonds = scBondPairs.map(() => makeBond(BCOL.sc));
   // 羰基 C=O：全站统一红色双线
   const oPairs = [makeBondPair(BCOL.co), makeBondPair(BCOL.co)];
 
-  [...atoms, ...scAtoms, ...oAtoms, ...bbBonds, ...scBonds, ...oPairs.flat()].forEach((m) => scene.add(m));
+  [...atoms, ...scAtoms, ...oAtoms, ...bbBonds, ...scBonds, ...oPairs.flat(), ...pepPair].forEach((m) => scene.add(m));
 
   // 残基 2 的局部坐标系三轴（AF 的 frame：x→C，z 指向 N 侧）
   const frame = new THREE.Group();
@@ -80,6 +82,7 @@ export function initBackbone() {
 
     atoms.forEach((m, i) => m.position.copy(pos[i]));
     bbBonds.forEach((m, i) => setBond(m, pos[bbPairs[i][0]], pos[bbPairs[i][1]]));
+    setBondPair(pepPair, pos[2], pos[3]);
 
     // χ 数量选择
     const count = Number(root.querySelector('[data-chi][aria-pressed="true"]').dataset.chi);
@@ -110,7 +113,7 @@ export function initBackbone() {
   }
 
   // —— 扭转角高亮：四个原子 + 旋转轴亮起、其余压暗，配联动解说 ——
-  const allMeshes = [...atoms, ...scAtoms, ...bbBonds, ...scBonds, ...oAtoms, ...oPairs.flat()];
+  const allMeshes = [...atoms, ...scAtoms, ...bbBonds, ...scBonds, ...oAtoms, ...oPairs.flat(), ...pepPair];
   for (const m of allMeshes) m.userData.baseColor = m.material.color.clone();
 
   const axisRing = new THREE.Group();
@@ -130,11 +133,11 @@ export function initBackbone() {
   }
 
   const atomAt = (ref) => (typeof ref === 'number' ? atoms[ref] : scAtoms[Number(ref.slice(1))]);
-  const bondAt = (ref) => (ref[0] === 'b' ? bbBonds[Number(ref.slice(1))] : scBonds[Number(ref.slice(1))]);
+  const bondAt = (ref) => (ref === 'pep' ? pepPair[0] : ref[0] === 'b' ? bbBonds[Number(ref.slice(1))] : scBonds[Number(ref.slice(1))]);
   const TORSIONS = {
     psi:   { atoms: [0, 1, 2, 3], bond: 'b1', name: 'ψ₁', seq: 'N₁–Cα₁–C₁–N₂', axis: 'Cα₁–C₁' },
-    omega: { atoms: [1, 2, 3, 4], bond: 'b2', name: 'ω₁', seq: 'Cα₁–C₁–N₂–Cα₂', axis: 'C₁–N₂（肽键）' },
-    phi:   { atoms: [2, 3, 4, 5], bond: 'b3', name: 'φ₂', seq: 'C₁–N₂–Cα₂–C₂', axis: 'N₂–Cα₂' },
+    omega: { atoms: [1, 2, 3, 4], bond: 'pep', name: 'ω₁', seq: 'Cα₁–C₁–N₂–Cα₂', axis: 'C₁–N₂（肽键）' },
+    phi:   { atoms: [2, 3, 4, 5], bond: 'b2', name: 'φ₂', seq: 'C₁–N₂–Cα₂–C₂', axis: 'N₂–Cα₂' },
     chi1:  { atoms: [3, 4, 's0', 's1'], bond: 's0', name: 'χ₁', seq: 'N₂–Cα₂–Cβ–Cγ', axis: 'Cα₂–Cβ' },
     chi2:  { atoms: [4, 's0', 's1', 's2'], bond: 's1', name: 'χ₂', seq: 'Cα₂–Cβ–Cγ–Cδ', axis: 'Cβ–Cγ' },
     chi3:  { atoms: ['s0', 's1', 's2', 's3'], bond: 's2', name: 'χ₃', seq: 'Cβ–Cγ–Cδ–Cε', axis: 'Cγ–Cδ' },
@@ -147,6 +150,7 @@ export function initBackbone() {
     const focus = new Set(t.atoms.map(atomAt));
     const axisBond = bondAt(t.bond);
     focus.add(axisBond);
+    if (t.bond === 'pep') focus.add(pepPair[1]); // 双线两根同进同出，避免一根高亮一根压暗
     for (const m of allMeshes) {
       const base = m.userData.baseColor;
       if (focus.has(m)) {
