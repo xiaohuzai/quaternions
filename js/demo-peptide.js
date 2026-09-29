@@ -6,7 +6,7 @@ import { createScene, animate, vecArrow, DEG } from './scene-kit.js';
 import { makeAtom, COL } from './backbone-geom.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
-const KEYS = ['Ci', 'Nn', 'O', 'CAi', 'H', 'CAn', 'stub1', 'stub2'];
+const KEYS = ['Ci', 'Nn', 'O', 'CAi', 'H', 'CAn'];
 
 // 平面构型（trans，ω=180°）的基准布局：肽键 C–N 沿 +x 摆平
 const base = {
@@ -16,8 +16,6 @@ const base = {
   CAi: new THREE.Vector3(1.53 * Math.cos(-117 * DEG), 1.53 * Math.sin(-117 * DEG), 0),
   H: new THREE.Vector3(1.33 + 0.99 * Math.cos(-120 * DEG), 0.99 * Math.sin(-120 * DEG), 0),
   CAn: new THREE.Vector3(1.33 + 1.46 * Math.cos(58.3 * DEG), 1.46 * Math.sin(58.3 * DEG), 0),
-  stub1: new THREE.Vector3(-0.69, -1.36, 0).add(new THREE.Vector3(-0.38, -0.34, 0)),
-  stub2: new THREE.Vector3(1.33 + 1.46 * Math.cos(58.3 * DEG), 1.46 * Math.sin(58.3 * DEG), 0).add(new THREE.Vector3(0.38, 0.34, 0)),
 };
 
 // 规范位姿（按钮在两档间切换，不会越点越乱）
@@ -30,12 +28,12 @@ export function initPeptide() {
   const readEl = root.querySelector('#pp-read');
   const warnEl = root.querySelector('#pp-warn');
 
-  const { scene, invalidate } = createScene(canvas, { cam: [1.2, 1.6, 7.4], target: [0.55, 0.05, 0] });
+  const { scene, invalidate } = createScene(canvas, { cam: [1.3, 4.6, 5.4], target: [0.5, 0, 0] });
 
   // —— 原子（球径统一 ≈ 键径 3 倍）——
   const spec = {
     Ci: [0.17, COL.C], Nn: [0.17, COL.N], CAi: [0.18, COL.CA], CAn: [0.17, COL.CA],
-    O: [0.15, COL.O], H: [0.08, 0xe8e8e8], stub1: [0.08, 0x8d97a3], stub2: [0.08, 0x8d97a3],
+    O: [0.15, COL.O], H: [0.08, 0xe8e8e8],
   };
   const pos = {};
   const meshes = {};
@@ -58,21 +56,23 @@ export function initPeptide() {
     }
     bonds.push({ a, b, r, lines, meshes: meshes2 });
   };
-  addBond('CAi', 'Ci', 0x8d97a3);        // ψ 的铰链轴（可转）
-  addBond('Nn', 'CAn', 0x8d97a3);        // φ 的下游
+  addBond('CAi', 'Ci', 0x8d97a3);           // ψ 的铰链轴（可转）
+  addBond('Nn', 'CAn', 0x8d97a3);           // φ 的下游
   addBond('Nn', 'H', 0xb9c2cc, 0.03);
-  addBond('CAi', 'stub1', 0x8d97a3, 0.04);
-  addBond('CAn', 'stub2', 0x8d97a3, 0.04);
-  addBond('Ci', 'O', 0xe5626a, 0.034, 2);   // C=O
-  addBond('Ci', 'Nn', 0xd99a4e, 0.034, 2);  // 肽键 C–N（ω 的锁死轴）
+  addBond('Ci', 'O', 0xe5626a, 0.04, 2);    // C=O
+  addBond('Ci', 'Nn', 0xd99a4e, 0.04, 2);   // 肽键 C–N（ω 的锁死轴）
   const peptideMat = bondMat(0xd99a4e);
 
   // —— 肽平面薄膜（由 C、O、N 三点定义，适度放大）——
   const film = new THREE.Mesh(
     new THREE.BufferGeometry(),
-    new THREE.MeshBasicMaterial({ color: 0x54626f, transparent: true, opacity: 0.2, side: THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color: 0x64748a, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
   );
-  scene.add(film);
+  const filmEdge = new THREE.Line(
+    new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({ color: 0x9db0c2, transparent: true, opacity: 0.7 })
+  );
+  scene.add(film, filmEdge);
 
   // 铰链轴线（动画期间显现；ω 用禁止红）
   const axisPhi = tubeAxis(base.Nn, base.CAi, 0x54b06a);
@@ -101,15 +101,15 @@ export function initPeptide() {
       for (const k of keys) pos[k].sub(base[from]).applyQuaternion(q).add(base[from]);
     };
     // 嵌套顺序：ω 最内（只动 H/Cα′/下游），再 ψ，再 φ（最外）
-    rot('Ci', 'Nn', angles.omega, ['H', 'CAn', 'stub2']);
-    rot('CAi', 'Ci', angles.psi, ['O', 'Nn', 'H', 'CAn', 'stub2']);
-    rot('Nn', 'CAi', angles.phi, ['Ci', 'O', 'Nn', 'H', 'CAn', 'stub2']);
+    rot('Ci', 'Nn', angles.omega, ['H', 'CAn']);
+    rot('CAi', 'Ci', angles.psi, ['O', 'Nn', 'H', 'CAn']);
+    rot('Nn', 'CAi', angles.phi, ['Ci', 'O', 'Nn', 'H', 'CAn']);
 
     for (const k of KEYS) meshes[k].position.copy(pos[k]);
 
     for (const bd of bonds) {
       const pa = pos[bd.a], pb = pos[bd.b];
-      const mid = new THREE.Vector3().add(pa, pb).multiplyScalar(0.5);
+      const mid = new THREE.Vector3().addVectors(pa, pb).multiplyScalar(0.5);
       const dir = new THREE.Vector3().subVectors(pb, pa);
       const len = dir.length();
       dir.normalize();
@@ -132,12 +132,14 @@ export function initPeptide() {
     }
 
     // 肽平面薄膜：C、O、N 三点定平面，适度放大
-    const g = new THREE.Vector3().add(pos.Ci, pos.O).add(pos.Nn).multiplyScalar(1 / 3);
+    const g = new THREE.Vector3().addVectors(pos.Ci, pos.O).add(pos.Nn).multiplyScalar(1 / 3);
     const tri = [pos.Ci, pos.O, pos.Nn].map((p) => g.clone().addScaledVector(new THREE.Vector3().subVectors(p, g), 1.55));
     film.geometry.dispose();
     const fg = new THREE.BufferGeometry().setFromPoints(tri);
     fg.setIndex([0, 1, 2]);
     film.geometry = fg;
+    filmEdge.geometry.dispose();
+    filmEdge.geometry = new THREE.BufferGeometry().setFromPoints([...tri, tri[0]]);
     invalidate();
   }
 
@@ -188,7 +190,7 @@ export function initPeptide() {
     psiAlt = !psiAlt;
     swing('psi', (psiAlt ? ALT.psi : HOME.psi) - angles.psi);
   });
-  root.querySelector('#pp-omega').addEventListener('click', () => swing('omega', 6));
+  root.querySelector('#pp-omega').addEventListener('click', () => swing('omega', 15));
   root.querySelector('#pp-reset').addEventListener('click', () => {
     if (busy) return;
     phiAlt = psiAlt = false;
