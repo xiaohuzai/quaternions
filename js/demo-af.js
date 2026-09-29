@@ -1,9 +1,25 @@
-// demo-af.js — 06 节：一串残基坐标系，模拟结构模块逐轮的平滑小幅旋转更新
+// demo-af.js — 02 节：一段真实的 α 螺旋主链，每套坐标架骑在 Cα 上
+// 「模拟一轮预测更新」= 给每个残基的朝向 q 加一个小旋转（q ← normalize(q ⊗ Δq)）
 import * as THREE from 'three';
-import { createScene, buildGizmo, animate, easeInOutCubic, DEG } from './scene-kit.js';
+import { createScene, animate, easeInOutCubic, DEG } from './scene-kit.js';
+import { computeBackbone, residueFrame, makeAtom, makeBond, setBond, COL } from './backbone-geom.js';
 
-const N = 7;
-const GAP = 0.95;
+const N_RES = 7;
+const SCALE = 0.5;
+const AXES_LEN = 0.72;
+
+// 数学向量用平涂箭头（图解感），与原子（真实光照）刻意区分
+function vecArrow(dir, len, colorHex) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, len * 0.8, 10), mat);
+  shaft.position.y = len * 0.4;
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.22, 12), mat);
+  head.position.y = len * 0.8 + 0.1;
+  g.add(shaft, head);
+  g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  return g;
+}
 
 function randUnit(rng) {
   const z = rng() * 2 - 1, a = rng() * Math.PI * 2;
@@ -17,83 +33,109 @@ export function initAf() {
   const stepBtn = root.querySelector('#af-step');
   const resetBtn = root.querySelector('#af-reset');
 
-  const { scene, invalidate } = createScene(canvas, { cam: [1.8, 2.6, 7.2], target: [0, 0, 0] });
+  const { scene, invalidate } = createScene(canvas, { cam: [3.5, 1.0, 9.6], target: [0, 0, 0] });
 
-  const rng = Math.random;
-  let base;      // 基准姿态（复位用）
-  let cur;       // 当前姿态
-  let targets;   // 本轮目标
-  const gizmos = [];
+  // —— 真实主链：α 螺旋（φ=-47, ω=180, ψ=-47），居中、缩放、螺旋轴摆成竖直 ——
+  const bb = computeBackbone(N_RES, { psi: -47, omega: 180, phi: -57 });
+  const axis = new THREE.Vector3().subVectors(bb[N_RES - 1][1], bb[0][1]).normalize();
+  const upright = new THREE.Quaternion().setFromUnitVectors(axis, new THREE.Vector3(0, 1, 0));
+  const center = new THREE.Vector3();
+  bb.flat().forEach((p) => center.add(p));
+  center.multiplyScalar(1 / (N_RES * 3));
+  bb.forEach((tri) => tri.forEach((p) => {
+    p.sub(center).multiplyScalar(SCALE).applyQuaternion(upright);
+  }));
 
-  for (let i = 0; i < N; i++) {
-    const g = buildGizmo(0.55, { labels: false }); // 残基坐标架，7 套链上不放轴标签免得拥挤
-    g.position.set((i - (N - 1) / 2) * GAP, 0, 0);
+  // —— 主链：键 + 原子球 ——
+  const bondPairs = [];
+  for (let i = 0; i < N_RES; i++) {
+    bondPairs.push([bb[i][0], bb[i][1]], [bb[i][1], bb[i][2]]);
+    if (i < N_RES - 1) bondPairs.push([bb[i][2], bb[i + 1][0]]); // 肽键 C(i)–N(i+1)
+  }
+  for (const [a, b] of bondPairs) {
+    const m = makeBond(0x8d97a3);
+    setBond(m, a, b);
+    scene.add(m);
+  }
+  for (const [nPt, caPt, cPt] of bb) {
+    const mn = makeAtom(0.1, COL.N); mn.position.copy(nPt);
+    const mca = makeAtom(0.12, COL.CA); mca.position.copy(caPt);
+    const mc = makeAtom(0.1, COL.C); mc.position.copy(cPt);
+    scene.add(mn, mca, mc);
+  }
+
+  // —— 每个残基的朝向轴（frame），骑在 Cα 上 ——
+  const axesGroups = [];
+  const qHome = [];
+  bb.forEach(([nPt, caPt, cPt]) => {
+    const g = new THREE.Group();
+    g.position.copy(caPt);
+    g.add(
+      vecArrow(new THREE.Vector3(1, 0, 0), AXES_LEN, 0xe5626a),
+      vecArrow(new THREE.Vector3(0, 1, 0), AXES_LEN, 0x54b06a),
+      vecArrow(new THREE.Vector3(0, 0, 1), AXES_LEN, 0x5c7cf0)
+    );
+    const q0 = residueFrame(nPt, caPt, cPt);
+    g.quaternion.copy(q0);
     scene.add(g);
-    gizmos.push(g);
-  }
+    axesGroups.push(g);
+    qHome.push(q0.clone());
+  });
+  const qCur = qHome.map((q) => q.clone());
 
-  // 初始姿态：沿链的正弦摆动，好看且各不相同
-  function makeBase() {
-    const arr = [];
-    for (let i = 0; i < N; i++) {
-      arr.push(new THREE.Quaternion().setFromEuler(new THREE.Euler(
-        Math.sin(i * 0.9) * 0.55,
-        Math.cos(i * 1.3) * 0.85,
-        Math.sin(i * 0.5 + 1.2) * 0.45
-      )));
-    }
-    return arr;
-  }
+  let running = false;
 
-  function hardSet() {
-    gizmos.forEach((g, i) => g.quaternion.copy(cur[i]));
-    invalidate();
+  function applyStep() {
+    if (running) return;
+    running = true;
+    stepBtn.disabled = true;
+    const rng = Math.random;
+    // 每个残基抽一个 ±12° 的小旋转作为本轮「预测更新」
+    const targets = qCur.map((q) => {
+      const dq = new THREE.Quaternion().setFromAxisAngle(randUnit(rng), (rng() * 2 - 1) * 12 * DEG);
+      return dq.multiply(q).normalize();
+    });
+    const starts = qCur.map((q) => q.clone());
+    animate({
+      dur: 850,
+      ease: easeInOutCubic,
+      tick: (e) => {
+        qCur.forEach((q, i) => {
+          q.slerpQuaternions(starts[i], targets[i], e);
+          axesGroups[i].quaternion.copy(q);
+        });
+        invalidate();
+      },
+      done: () => {
+        running = false;
+        stepBtn.disabled = false;
+      },
+    });
   }
 
   function reset() {
-    base = makeBase();
-    cur = base.map((q) => q.clone());
-    targets = null;
-    hardSet();
+    if (running) return;
+    running = true;
+    stepBtn.disabled = true;
+    const starts = qCur.map((q) => q.clone());
+    animate({
+      dur: 600,
+      ease: easeInOutCubic,
+      tick: (e) => {
+        qCur.forEach((q, i) => {
+          q.slerpQuaternions(starts[i], qHome[i], e);
+          axesGroups[i].quaternion.copy(q);
+        });
+        invalidate();
+      },
+      done: () => {
+        running = false;
+        stepBtn.disabled = false;
+      },
+    });
   }
 
-  let cancelAll = [];
-
-  stepBtn.addEventListener('click', () => {
-    stepBtn.disabled = true;
-    resetBtn.disabled = true;
-    cancelAll.forEach((c) => c());
-    cancelAll = [];
-    // 每个残基抽一个 ±14° 的小扰动作为本轮「预测更新」
-    targets = cur.map((q) => {
-      const dq = new THREE.Quaternion().setFromAxisAngle(randUnit(rng), (rng() * 2 - 1) * 14 * DEG);
-      return new THREE.Quaternion().multiplyQuaternions(dq, q).normalize();
-    });
-    let finished = 0;
-    gizmos.forEach((g, i) => {
-      const start = cur[i].clone();
-      const target = targets[i];
-      cancelAll.push(
-        animate({
-          dur: 820,
-          ease: easeInOutCubic,
-          tick: (e) => {
-            cur[i].slerpQuaternions(start, target, e);
-            g.quaternion.copy(cur[i]);
-            invalidate();
-          },
-          done: () => {
-            cur[i].copy(target);
-            if (++finished === N) {
-              stepBtn.disabled = false;
-              resetBtn.disabled = false;
-            }
-          },
-        })
-      );
-    });
-  });
-
+  stepBtn.addEventListener('click', applyStep);
   resetBtn.addEventListener('click', reset);
-  reset();
+  invalidate();
 }

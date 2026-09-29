@@ -312,6 +312,55 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   pointer-events: none;
   letter-spacing: 0.02em;
 }
+
+/* 画布控件栈：缩放 ＋/－/⟲ + 四向平移 pad（右上角，地图式） */
+.ctl-stack {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  z-index: 5;
+}
+.ctl-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  background: rgba(11, 15, 20, 0.72);
+  color: var(--muted);
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 0;
+  font-family: var(--font-body);
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.ctl-btn:hover { color: var(--text); border-color: var(--accent); }
+.ctl-btn:active { transform: translateY(1px); }
+.ctl-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  gap: 4px;
+}
+.ctl-pad-btn { width: 34px; height: 30px; font-size: 13px; }
+.ctl-pad-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ctl-pad-dot::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--faint);
+  opacity: 0.6;
+}
 .demo-side {
   border-left: 1px solid var(--line-soft);
   padding: 20px 20px 18px;

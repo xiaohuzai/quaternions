@@ -46,18 +46,55 @@ export function createScene(canvas, opts = {}) {
   controls.target.set(...(opts.target ?? [0, 0.1, 0]));
   controls.minDistance = 2.2;
   controls.maxDistance = 16;
+  // 滚轮/双指缩放自己实现（指数平滑）；OrbitControls 只管旋转与双指平移
   controls.enableZoom = false;
-  // Ctrl/⌘ + 滚轮才缩放，普通滚轮留给页面滚动
-  canvas.addEventListener('wheel', (e) => { controls.enableZoom = e.ctrlKey || e.metaKey; }, { passive: true });
-  // 移动端：竖向滑动翻页、横向滑动转视角；双指捏合缩放/平移归 OrbitControls（touch-action 不含 pinch-zoom）
   canvas.style.touchAction = 'pan-y';
 
-  // 双击复位：缩丢了/转晕了随时回初始机位（平滑过渡）
+  // —— 平滑缩放：滚轮/双指/按钮只改「目标距离」，渲染循环里指数逼近 ——
+  let distTarget = null;
+  const clampDist = (d) => THREE.MathUtils.clamp(d, controls.minDistance, controls.maxDistance);
+  canvas.addEventListener('wheel', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return; // 普通滚轮留给页面滚动
+    e.preventDefault();
+    const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+    distTarget = clampDist((distTarget ?? camera.position.distanceTo(controls.target)) * Math.exp(dy * 0.0016));
+    invalidate();
+  }, { passive: false });
+  // 触屏双指捏合（touch-action:pan-y 下双指事件进 JS）
+  const touches = new Map();
+  const pinchSpan = () => {
+    const [a, b] = [...touches.values()];
+    return Math.hypot(a[0] - b[0], a[1] - b[1]) || 1;
+  };
+  let pinchDist = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'touch') return;
+    touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (touches.size === 2) pinchDist = pinchSpan();
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'touch' || !touches.has(e.pointerId)) return;
+    touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (touches.size === 2) {
+      const d = pinchSpan();
+      if (pinchDist > 0) {
+        distTarget = clampDist((distTarget ?? camera.position.distanceTo(controls.target)) * (pinchDist / d));
+        invalidate();
+      }
+      pinchDist = d;
+    }
+  });
+  const dropTouch = (e) => { touches.delete(e.pointerId); pinchDist = 0; };
+  canvas.addEventListener('pointerup', dropTouch);
+  canvas.addEventListener('pointercancel', dropTouch);
+
+  // 双击复位：缩丢了/转晕了随时回初始机位（平滑过渡）；⟲ 按钮共用
   const camHome = camera.position.clone();
   const targetHome = controls.target.clone();
-  canvas.addEventListener('dblclick', () => {
+  function resetView() {
     const p0 = camera.position.clone();
     const t0 = controls.target.clone();
+    distTarget = null;
     animate({
       dur: 420,
       tick: (e) => {
@@ -67,7 +104,67 @@ export function createScene(canvas, opts = {}) {
         invalidate();
       },
     });
-  });
+  }
+  canvas.addEventListener('dblclick', resetView);
+
+  // 平移一步（视图相对方向，位移量随缩放级别缩放）
+  function panBy(sx, sy) {
+    const dir = new THREE.Vector3().subVectors(controls.target, camera.position).normalize();
+    const right = new THREE.Vector3().crossVectors(dir, camera.up).normalize();
+    const up = new THREE.Vector3().crossVectors(right, dir).normalize();
+    const step = camera.position.distanceTo(controls.target) * 0.28;
+    const p0 = camera.position.clone(), t0 = controls.target.clone();
+    const delta = right.multiplyScalar(sx * step).addScaledVector(up, sy * step);
+    const p1 = p0.clone().add(delta), t1 = t0.clone().add(delta);
+    distTarget = null;
+    animate({
+      dur: 230,
+      tick: (e) => {
+        camera.position.lerpVectors(p0, p1, e);
+        controls.target.lerpVectors(t0, t1, e);
+        controls.update();
+        invalidate();
+      },
+    });
+  }
+
+  // 控件栈：＋/－ 缩放、⟲ 复位、四向平移 pad——桌面点按、触屏免找 Ctrl
+  if (opts.uiControls !== false) {
+    const stack = document.createElement('div');
+    stack.className = 'ctl-stack';
+    const mkBtn = (html, title, fn, cls = 'ctl-btn') => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = cls;
+      b.innerHTML = html;
+      b.title = title;
+      b.setAttribute('aria-label', title);
+      b.addEventListener('click', fn);
+      return b;
+    };
+    stack.append(
+      mkBtn('＋', '放大', () => { distTarget = clampDist(camera.position.distanceTo(controls.target) * 0.72); invalidate(); }),
+      mkBtn('－', '缩小', () => { distTarget = clampDist(camera.position.distanceTo(controls.target) * 1.38); invalidate(); }),
+      mkBtn('⟲', '复位视角', resetView)
+    );
+    const pad = document.createElement('div');
+    pad.className = 'ctl-pad';
+    const ph = () => document.createElement('span');
+    const dot = () => Object.assign(document.createElement('span'), { className: 'ctl-pad-dot' });
+    pad.append(
+      ph(),
+      mkBtn('↑', '向上平移', () => panBy(0, 1), 'ctl-btn ctl-pad-btn'),
+      ph(),
+      mkBtn('←', '向左平移', () => panBy(-1, 0), 'ctl-btn ctl-pad-btn'),
+      dot(),
+      mkBtn('→', '向右平移', () => panBy(1, 0), 'ctl-btn ctl-pad-btn'),
+      ph(),
+      mkBtn('↓', '向下平移', () => panBy(0, -1), 'ctl-btn ctl-pad-btn'),
+      ph()
+    );
+    stack.append(pad);
+    canvas.parentElement?.appendChild(stack);
+  }
 
   // 每个画布的常驻操作提示
   const hint = document.createElement('div');
@@ -108,7 +205,18 @@ export function createScene(canvas, opts = {}) {
   const loop = (now) => {
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
-    const moved = controls.update(); // 阻尼/autoRotate 期间持续为 true
+    let moved = controls.update(); // 阻尼/autoRotate 期间持续为 true
+    // 平滑缩放：向目标距离指数逼近（逼近中才渲染，静止零开销）
+    if (distTarget !== null) {
+      const d = camera.position.distanceTo(controls.target);
+      const nd = d + (distTarget - d) * (1 - Math.exp(-dt * 9));
+      if (Math.abs(nd - distTarget) > 0.004) {
+        camera.position.sub(controls.target).multiplyScalar(nd / d).add(controls.target);
+        moved = true;
+      } else {
+        distTarget = null;
+      }
+    }
     if (frameCb) frameCb(dt, invalidate);
     if (dirty || moved) {
       renderer.render(scene, camera);

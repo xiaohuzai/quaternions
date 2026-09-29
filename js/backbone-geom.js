@@ -58,6 +58,23 @@ export function residueFrame(N, CA, C) {
   return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
 }
 
+// 直链主链：同一组 φ/ψ/ω 走到底（α 螺旋取 (-47, 180, -57) 即得螺旋形态），n 个残基
+// 返回 [[N, Cα, C] × n]
+export function computeBackbone(n, { psi = -47, omega = 180, phi = -57 } = {}) {
+  const N0 = new THREE.Vector3(BOND.nCa, 0, 0);
+  const CA0 = new THREE.Vector3(0, 0, 0);
+  const C0 = new THREE.Vector3(Math.cos(ANGLE.nCaC * DEG), Math.sin(ANGLE.nCaC * DEG), 0).multiplyScalar(BOND.caC);
+  const bb = [[N0, CA0, C0]];
+  for (let i = 1; i < n; i++) {
+    const [pN, pCA, pC] = bb[i - 1];
+    const Ni = placeAtom(pN, pCA, pC, BOND.cN, ANGLE.caCN, psi);
+    const CAi = placeAtom(pCA, pC, Ni, BOND.nCa, ANGLE.cNCa, omega);
+    const Ci = placeAtom(pC, Ni, CAi, BOND.caC, ANGLE.nCaC, phi);
+    bb.push([Ni, CAi, Ci]);
+  }
+  return bb;
+}
+
 // —— 网格工厂 ——
 export const COL = { N: 0x5c7cf0, CA: 0xd8d2c4, C: 0xd99a4e, S: 0x54b06a, O: 0xe5626a };
 
