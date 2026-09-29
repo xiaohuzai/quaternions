@@ -1,25 +1,12 @@
 // demo-af.js — 02 节：一段真实的 α 螺旋主链，每套坐标架骑在 Cα 上
 // 「模拟一轮预测更新」= 给每个残基的朝向 q 加一个小旋转（q ← normalize(q ⊗ Δq)）
 import * as THREE from 'three';
-import { createScene, animate, easeInOutCubic, DEG } from './scene-kit.js';
+import { createScene, animate, easeInOutCubic, vecArrow, DEG } from './scene-kit.js';
 import { computeBackbone, residueFrame, makeAtom, makeBond, setBond, COL } from './backbone-geom.js';
 
 const N_RES = 7;
 const SCALE = 0.5;
 const AXES_LEN = 0.72;
-
-// 数学向量用平涂箭头（图解感），与原子（真实光照）刻意区分
-function vecArrow(dir, len, colorHex) {
-  const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color: colorHex });
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, len * 0.8, 10), mat);
-  shaft.position.y = len * 0.4;
-  const head = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.22, 12), mat);
-  head.position.y = len * 0.8 + 0.1;
-  g.add(shaft, head);
-  g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-  return g;
-}
 
 function randUnit(rng) {
   const z = rng() * 2 - 1, a = rng() * Math.PI * 2;

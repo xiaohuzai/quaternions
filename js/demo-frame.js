@@ -1,21 +1,8 @@
 // demo-frame.js — 「从三个原子到三角架」：N、Cα、C 的 111° 键角如何构造出正交坐标系
 // 关键对照：键角（化学键之间）随滑块变，轴角（x∧y）永远 90°——正交的是坐标系，不是化学键
 import * as THREE from 'three';
-import { createScene, animate, textSprite, DEG } from './scene-kit.js';
+import { createScene, animate, textSprite, vecArrow, DEG } from './scene-kit.js';
 import { makeAtom, makeBond, setBond, COL } from './backbone-geom.js';
-
-// 数学向量用平涂（图解感），原子用真实光照（实体感）——两种材质刻意区分
-function vecArrow(dir, len, colorHex, opacity = 1) {
-  const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: opacity < 1, opacity });
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, len * 0.8, 10), mat);
-  shaft.position.y = len * 0.4;
-  const head = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.2, 12), mat);
-  head.position.y = len * 0.8 + 0.09;
-  g.add(shaft, head);
-  g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-  return g;
-}
 
 function tubeAlong(points, colorHex, opacity = 1, radius = 0.014) {
   const curve = new THREE.CatmullRomCurve3(points);

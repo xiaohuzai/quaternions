@@ -84,9 +84,9 @@ export function makeAtom(radius, color) {
     new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.08 })
   );
 }
-export function makeBond(color) {
+export function makeBond(color, r = 0.055) {
   return new THREE.Mesh(
-    new THREE.CylinderGeometry(0.045, 0.045, 1, 10),
+    new THREE.CylinderGeometry(r, r, 1, 10),
     new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.05 })
   );
 }

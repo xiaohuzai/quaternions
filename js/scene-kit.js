@@ -259,6 +259,19 @@ export function textSprite(text, color, { size = 96, scale = 0.5, italic = true,
   return sp;
 }
 
+// 平涂箭头（图解用，MeshBasicMaterial 无光照——与真实光照的原子刻意区分）
+export function vecArrow(dir, len, colorHex, opacity = 1) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: opacity < 1, opacity });
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, len * 0.8, 10), mat);
+  shaft.position.y = len * 0.4;
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.2, 12), mat);
+  head.position.y = len * 0.8 + 0.09;
+  g.add(shaft, head);
+  g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  return g;
+}
+
 // 彩色坐标轴（圆柱 + 圆锥，比 ArrowHelper 漂亮）
 function axisArrow(dir, colorHex, len = 1.45) {
   const g = new THREE.Group();
