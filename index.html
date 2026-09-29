@@ -238,11 +238,12 @@
     <div class="demo-side">
       <div class="controls">
         <button class="btn primary" id="af-step">模拟一轮预测更新</button>
+        <button class="btn ghost" id="af-back" disabled>← 上一轮</button>
         <button class="btn ghost" id="af-reset">复位</button>
       </div>
       <div class="formula" id="af-formula">q ← normalize( q ⊗ Δq )</div>
       <div class="mini-note" id="af-round" style="margin-top:8px"></div>
-      <p class="mini-note">琥珀色<strong>双线</strong> = 肽键（部分双键，刚性不可转）；灰色单线 = 可转的单键。「刚性」指<strong>不能绕肽键自转</strong>（ω 锁死在 180°）——它的空间位置并不固定，会跟着两侧的铰链动。所以每轮的 Δq 不是乱抽的：它只能来自肽基平面两侧 φ、ψ 两个铰链（04 节会专门讲）的小旋转，并沿链传播——t 与 q 一起变，但键长、键角、肽基平面始终保持刚性，琥珀双线的长度一分不变。连按几次看迭代——折叠机（04 节）右侧的 t、q 读数就是同一套东西的实时数值。每轮更新后，图中<strong>绿/蓝套管与 ± 度数</strong> = 本轮各残基 φ/ψ 铰链抽到的小旋转（保留到下一轮或复位），整体刚体旋转的度数写在公式下方。</p>
+      <p class="mini-note">琥珀色<strong>双线</strong> = 肽键（部分双键，刚性不可转）；灰色单线 = 可转的单键。「刚性」指<strong>不能绕肽键自转</strong>（ω 锁死在 180°）——它的空间位置并不固定，会跟着两侧的铰链动。所以每轮的 Δq 不是乱抽的：它只能来自肽基平面两侧 φ、ψ 两个铰链（04 节会专门讲）的小旋转，并沿链传播——t 与 q 一起变，但键长、键角、肽基平面始终保持刚性，琥珀双线的长度一分不变。连按几次看迭代——折叠机（04 节）右侧的 t、q 读数就是同一套东西的实时数值。每轮更新后，图中<strong>绿/蓝套管与 ± 度数</strong> = 本轮各残基 φ/ψ 铰链抽到的小旋转（保留到下一轮或复位），整体刚体旋转的度数写在公式下方。「← 上一轮」退回本轮之前的状态、前进会<strong>重放同一轮</strong>的更新（标注跟着轮次走）——来回按几次，盯着一组度数看链动与回退，单轮变化最清楚。</p>
     </div>
   </div>
 

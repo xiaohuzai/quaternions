@@ -56,6 +56,7 @@ export function initAf() {
   const root = document.querySelector('[data-demo="af"]');
   const canvas = root.querySelector('canvas');
   const stepBtn = root.querySelector('#af-step');
+  const backBtn = root.querySelector('#af-back');
   const resetBtn = root.querySelector('#af-reset');
   const roundEl = root.querySelector('#af-round');
 
@@ -168,6 +169,10 @@ export function initAf() {
 
   let running = false;
 
+  // —— 历史栈：第 k 项 = 第 k 轮后的状态 + 该轮更新量；后退/前进沿栈走，前进有历史时重放同一轮 ——
+  const history = [{ phis: phis.slice(), psis: psis.slice(), spin: spin.clone(), dphi: null, dpsi: null, spinDeg: null }];
+  let cursor = 0;
+
   function runTo(phiT, psiT, spinT, dur) {
     if (running) return;
     running = true;
@@ -193,7 +198,39 @@ export function initAf() {
     });
   }
 
+  // 角度标注跟随「前进方向相邻」的那一轮：链尾时显示刚应用的轮次，后退后显示前进将重放的轮次——来回对比最清楚
+  function showRound() {
+    const k = cursor + 1 < history.length ? cursor + 1 : cursor;
+    const e = history[k];
+    if (e.dphi) {
+      hingeVis.forEach((h, i) => {
+        h.phiLbl.setText(fmtDelta(e.dphi[i]));
+        h.psiLbl.setText(fmtDelta(e.dpsi[i]));
+        h.phiTube.visible = h.psiTube.visible = true;
+        h.phiLbl.visible = h.psiLbl.visible = true;
+      });
+      roundEl.innerHTML =
+        `第 ${k} 轮：每个残基的 φ/ψ 铰链小旋转如图中标注（绿 φ、蓝 ψ）；整体刚体小旋转 <b>${fmtDelta(e.spinDeg)}</b>。` +
+        (k === cursor ? '' : cursor === 0 ? '当前在初始状态，前进将应用本轮。' : `当前在第 ${cursor} 轮后的状态，前进将重放本轮。`);
+    } else {
+      hingeVis.forEach((h) => {
+        h.phiTube.visible = h.psiTube.visible = false;
+        h.phiLbl.visible = h.psiLbl.visible = false;
+      });
+      roundEl.textContent = '';
+    }
+    backBtn.disabled = cursor === 0;
+  }
+
+  function goTo(k, dur) {
+    cursor = k;
+    showRound();
+    runTo(history[k].phis, history[k].psis, history[k].spin, dur);
+  }
+
   function applyStep() {
+    if (running) return;
+    if (cursor < history.length - 1) { goTo(cursor + 1, 850); return; } // 前进：重放已有轮次
     const rng = Math.random;
     // 一轮「预测更新」：每个铰链抽一个小旋转（沿链传播），外加一个整体刚体小旋转
     const dphi = phis.map(() => (rng() * 2 - 1) * HINGE_JITTER);
@@ -202,28 +239,27 @@ export function initAf() {
     const spinT = new THREE.Quaternion()
       .setFromAxisAngle(randUnit(rng), spinDeg * DEG)
       .multiply(spin); // 世界系左乘：整体姿态在现有基础上再转
-    // 本轮更新量上铰链：绿 φ / 蓝 ψ 套管 + ±度数小标，保留到下一轮或复位
-    hingeVis.forEach((h, i) => {
-      h.phiLbl.setText(fmtDelta(dphi[i]));
-      h.psiLbl.setText(fmtDelta(dpsi[i]));
-      h.phiTube.visible = h.psiTube.visible = true;
-      h.phiLbl.visible = h.psiLbl.visible = true;
+    history.push({
+      phis: phis.map((v, i) => v + dphi[i]),
+      psis: psis.map((v, i) => v + dpsi[i]),
+      spin: spinT, dphi, dpsi, spinDeg,
     });
-    roundEl.innerHTML =
-      `本轮：每个残基的 φ/ψ 铰链小旋转如图中标注（绿 φ、蓝 ψ）；整体刚体小旋转 <b>${fmtDelta(spinDeg)}</b>。`;
-    runTo(phis.map((v, i) => v + dphi[i]), psis.map((v, i) => v + dpsi[i]), spinT, 850);
+    goTo(history.length - 1, 850);
+  }
+
+  function backStep() {
+    if (running || cursor === 0) return;
+    goTo(cursor - 1, 600);
   }
 
   function reset() {
-    hingeVis.forEach((h) => {
-      h.phiTube.visible = h.psiTube.visible = false;
-      h.phiLbl.visible = h.psiLbl.visible = false;
-    });
-    roundEl.textContent = '';
-    runTo(new Array(N_RES).fill(HOME.phi), new Array(N_RES).fill(HOME.psi), new THREE.Quaternion(), 600);
+    if (running) return;
+    history.splice(1); // 只留初始状态，丢弃所有已走过的轮次
+    goTo(0, 600);
   }
 
   stepBtn.addEventListener('click', applyStep);
+  backBtn.addEventListener('click', backStep);
   resetBtn.addEventListener('click', reset);
   invalidate();
 }
