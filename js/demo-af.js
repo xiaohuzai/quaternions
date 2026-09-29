@@ -17,6 +17,7 @@ const AXES_LEN = 0.72;
 const HOME = { phi: -57, psi: -47 }; // α 螺旋；ω=180° 锁死，不参与更新
 const HINGE_JITTER = 8; // 每个 φ/ψ 铰链每轮抽 ±8°
 const SPIN_JITTER = 6;  // 整体刚体小旋转每轮 ±6°
+const UP = new THREE.Vector3(0, 1, 0);
 const ZERO = new THREE.Vector3(0, 0, 0);
 
 function randUnit(rng) {

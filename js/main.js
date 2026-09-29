@@ -27,7 +27,14 @@ const boot = () => {
     ['gimbal', initGimbal],
   ];
   for (const [name, init] of inits) {
-    try { init(); } catch (e) { console.error(`demo init failed: ${name}`, e); }
+    try { init(); } catch (e) {
+      console.error(`demo init failed: ${name}`, e);
+      // 失败要响：init 抛错时 onstage 挂牌，不再静默白屏
+      const stage = document.querySelector(`[data-demo="${name}"] .demo-stage`)
+        ?? document.querySelector('#hero-canvas')?.parentElement;
+      stage?.insertAdjacentHTML('beforeend',
+        '<div style="position:absolute;left:12px;top:12px;z-index:5;color:#e5626a;font-size:13px;background:rgba(11,15,20,.85);padding:4px 10px;border-radius:6px">演示初始化失败，详见控制台</div>');
+    }
   }
 
   // 入场动画（尊重 reduced-motion：CSS 里已直接显示）
