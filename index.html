@@ -178,8 +178,45 @@
       <span class="m">t</span> = Cα 在全局系里的位置；<span class="m">q</span> = 残基系相对全局系的朝向。
       每个残基都直接对全局系说话，<strong>不是</strong>相对上一个残基存的。
     </p>
+  </div>
+
+  <h3 class="sub-h">从三个原子到三角架：正交是怎么来的</h3>
+  <p class="demo-note" style="margin-top:0">
+    三个原子并不天然正交——键角 <span class="m">∠N–Cα–C</span> 是 <span class="m">111°</span> 的钝角。
+    三角架是<strong>构造</strong>出来的：① x 轴指向 C；② N 的方向减去它在 x 上的分量，剩下的就是 y（垂直化）；
+    ③ z = x×y 叉乘补成右手系。拖下面两个滑块看对照：<strong>键角怎么变，轴角永远 90°</strong>——
+    正交的是坐标系，不是化学键。
+  </p>
+  <div class="demo" data-demo="frame">
+    <div class="demo-stage"><canvas aria-label="从 N、Cα、C 三个原子构造正交坐标系的三步演示"></canvas></div>
+    <div class="demo-side">
+      <div class="controls">
+        <div class="seg" role="group" aria-label="构造步骤">
+          <button data-fstep="1" aria-pressed="false">① x 轴</button>
+          <button data-fstep="2" aria-pressed="false">② y 轴</button>
+          <button data-fstep="3" aria-pressed="false">③ z 轴</button>
+          <button data-fstep="all" aria-pressed="true">全部</button>
+        </div>
+      </div>
+      <div class="slider-row">
+        <label for="fr-angle">键角 ∠N–Cα–C</label>
+        <input type="range" id="fr-angle" min="90" max="140" step="1" value="111">
+        <span class="val" id="fr-angle-val">111°</span>
+      </div>
+      <div class="slider-row">
+        <label for="fr-spin">平面方位</label>
+        <input type="range" id="fr-spin" min="0" max="360" step="1" value="0">
+        <span class="val" id="fr-spin-val">0°</span>
+      </div>
+      <div class="formula" id="fr-read" style="white-space:normal"></div>
+      <div class="bb-explain" id="fr-explain"></div>
+      <p class="mini-note">灰白箭头 = N 的原始方向；红色半透明段 = 被减掉的 x 分量；绿段 = 剩余（平行于 y）。</p>
+    </div>
+  </div>
+
+  <div class="af-prose">
     <p>
-      下面的演示里，每套<strong>坐标架</strong>就是一个残基的坐标系（蓝球 = N、骨白球 = Cα、琥珀球 = C，
+      再往下那条链里，每套<strong>坐标架</strong>就是一个残基的坐标系（蓝球 = N、骨白球 = Cα、琥珀球 = C，
       三色箭头 = 残基系的轴）：<strong>t 定它的位置，q 定它的朝向</strong>。
       AlphaFold 每轮预测会微调每个 q（四元数乘法 + 归一化，永远是光滑的小旋转）和 t，一轮轮逼近真实结构。
     </p>

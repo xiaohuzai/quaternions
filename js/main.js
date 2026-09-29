@@ -1,5 +1,6 @@
 // main.js — 装配所有演示 + 导航高亮 + 入场动画
 import { initHero } from './hero.js';
+import { initFrame } from './demo-frame.js';
 import { initDihedral } from './demo-dihedral.js';
 import { initBackbone } from './demo-backbone.js';
 import { initRamachandran } from './ramachandran.js';
@@ -13,6 +14,7 @@ const boot = () => {
   // 每个演示独立容错：一个模块出问题不能连坐整页
   const inits = [
     ['hero', initHero],
+    ['frame', initFrame],
     ['dihedral', initDihedral],
     ['backbone', initBackbone],
     ['ramachandran', initRamachandran],
