@@ -4,6 +4,7 @@ import { initFrame } from './demo-frame.js';
 import { initDihedral } from './demo-dihedral.js';
 import { initBackbone } from './demo-backbone.js';
 import { initRamachandran } from './ramachandran.js';
+import { initPeptide } from './demo-peptide.js';
 import { initAf } from './demo-af.js';
 import { initCircle } from './demo-circle.js';
 import { initTranslate } from './demo-translate.js';
@@ -18,6 +19,7 @@ const boot = () => {
     ['dihedral', initDihedral],
     ['backbone', initBackbone],
     ['ramachandran', initRamachandran],
+    ['peptide', initPeptide],
     ['af', initAf],
     ['circle', initCircle],
     ['translate', initTranslate],

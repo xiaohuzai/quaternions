@@ -27,6 +27,25 @@ function randUnit(rng) {
   return new THREE.Vector3(r * Math.cos(a), r * Math.sin(a), z);
 }
 
+// 肽键：琥珀色双线（部分双键的化学画法），双线沿垂直于键轴的方向对称展开
+function peptideBond(a, b, scene) {
+  const vec = new THREE.Vector3().subVectors(b, a);
+  const len = vec.length();
+  const dir = vec.clone().normalize();
+  const perp = Math.abs(dir.y) < 0.9
+    ? new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize()
+    : new THREE.Vector3().crossVectors(dir, new THREE.Vector3(1, 0, 0)).normalize();
+  for (const off of [-0.05, 0.05]) {
+    const m = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.03, 0.03, len * 0.92, 10),
+      new THREE.MeshStandardMaterial({ color: 0xd99a4e, roughness: 0.35, metalness: 0.25 })
+    );
+    m.position.copy(a).add(b).multiplyScalar(0.5).addScaledVector(perp, off);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    scene.add(m);
+  }
+}
+
 export function initAf() {
   const root = document.querySelector('[data-demo="af"]');
   const canvas = root.querySelector('canvas');
@@ -47,15 +66,12 @@ export function initAf() {
   }));
 
   // —— 主链：键 + 原子球 ——
-  const bondPairs = [];
+  // 可转单键（N–Cα、Cα–C）= 灰色单线；肽键 C–N = 琥珀双线（部分双键，刚性 ω≈180°）
   for (let i = 0; i < N_RES; i++) {
-    bondPairs.push([bb[i][0], bb[i][1]], [bb[i][1], bb[i][2]]);
-    if (i < N_RES - 1) bondPairs.push([bb[i][2], bb[i + 1][0]]); // 肽键 C(i)–N(i+1)
-  }
-  for (const [a, b] of bondPairs) {
-    const m = makeBond(0x8d97a3);
-    setBond(m, a, b);
-    scene.add(m);
+    const [nPt, caPt, cPt] = bb[i];
+    const b1 = makeBond(0x8d97a3); setBond(b1, nPt, caPt); scene.add(b1);
+    const b2 = makeBond(0x8d97a3); setBond(b2, caPt, cPt); scene.add(b2);
+    if (i < N_RES - 1) peptideBond(cPt, bb[i + 1][0], scene);
   }
   for (const [nPt, caPt, cPt] of bb) {
     const mn = makeAtom(0.1, COL.N); mn.position.copy(nPt);
