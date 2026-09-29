@@ -210,7 +210,8 @@
       </div>
       <div class="formula" id="fr-read" style="white-space:normal"></div>
       <div class="bb-explain" id="fr-explain"></div>
-      <p class="mini-note">灰白箭头 = N 的原始方向；红色半透明段 = 被减掉的 x 分量；绿段 = 剩余（平行于 y）。</p>
+      <p class="mini-note">灰白箭头 = N 的原始方向；红色半透明段 = 被减掉的 x 分量；绿段 = 剩余（平行于 y）。
+      键角滑块改的是<strong>形状</strong>（两根键的夹角），平面方位滑块改的是<strong>姿态</strong>（整个刚体转过去）——锁死的是键长键角，不是平面朝向。</p>
     </div>
   </div>
 
@@ -229,7 +230,7 @@
         <button class="btn ghost" id="af-reset">复位</button>
       </div>
       <div class="formula" id="af-formula">q ← normalize( q ⊗ Δq )</div>
-      <p class="mini-note">连按几次看迭代。折叠机（04 节）右侧的 t、q 读数就是同一套东西的实时数值。</p>
+      <p class="mini-note">这里只让 <b>q</b> 动（每轮一个小旋转）；真实 AlphaFold 每轮<strong>同时更新 t 与 q</strong>，并重新预测扭转角。连按几次看迭代——折叠机（04 节）右侧的 t、q 读数就是同一套东西的实时数值。</p>
     </div>
   </div>
 
