@@ -45,8 +45,11 @@ export function initAf() {
     const [nPt, caPt, cPt] = bb[i];
     const g = new THREE.Group();
     g.position.copy(caPt);
-    const nL = nPt.clone().sub(caPt);
-    const cL = cPt.clone().sub(caPt);
+    // 原子偏移必须乘 q0⁻¹ 写进组的局部系：组挂着旋转 q0，世界偏移会再被转一次
+    const q0 = residueFrame(nPt, caPt, cPt);
+    const invQ = q0.clone().invert();
+    const nL = nPt.clone().sub(caPt).applyQuaternion(invQ);
+    const cL = cPt.clone().sub(caPt).applyQuaternion(invQ);
     const mn = makeAtom(0.1, COL.N); mn.position.copy(nL); g.add(mn);
     g.add(makeAtom(0.12, COL.CA)); // Cα = 组原点
     const mc = makeAtom(0.1, COL.C); mc.position.copy(cL); g.add(mc);
@@ -57,7 +60,6 @@ export function initAf() {
       vecArrow(new THREE.Vector3(0, 1, 0), AXES_LEN, 0x54b06a),
       vecArrow(new THREE.Vector3(0, 0, 1), AXES_LEN, 0x5c7cf0)
     );
-    const q0 = residueFrame(nPt, caPt, cPt);
     g.quaternion.copy(q0);
     scene.add(g);
     resGroups.push(g);
@@ -111,7 +113,7 @@ export function initAf() {
     // 每个残基抽一个 ±12° 的小旋转作为本轮「预测更新」
     const targets = qCur.map((q) => {
       const dq = new THREE.Quaternion().setFromAxisAngle(randUnit(rng), (rng() * 2 - 1) * 12 * DEG);
-      return dq.multiply(q).normalize();
+      return q.clone().multiply(dq).normalize(); // 与屏上公式一致：q ⊗ Δq
     });
     const starts = qCur.map((q) => q.clone());
     animate({
