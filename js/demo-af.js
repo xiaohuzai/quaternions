@@ -26,11 +26,38 @@ function randUnit(rng) {
   return new THREE.Vector3(r * Math.cos(a), r * Math.sin(a), z);
 }
 
+// 可改字的度数小标（scene-kit 的 textSprite 一次烘焙，这里需要每轮重写文本）
+function makeDeltaLabel(color) {
+  const cv = document.createElement('canvas');
+  cv.width = 128; cv.height = 64;
+  const ctx = cv.getContext('2d');
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sp.scale.set(0.42, 0.21, 1);
+  const hex = `#${color.toString(16).padStart(6, '0')}`;
+  sp.setText = (t) => {
+    ctx.clearRect(0, 0, 128, 64);
+    ctx.font = '600 40px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = 'rgba(11,15,20,0.9)';
+    ctx.strokeText(t, 64, 34);
+    ctx.fillStyle = hex;
+    ctx.fillText(t, 64, 34);
+    tex.needsUpdate = true;
+  };
+  return sp;
+}
+const fmtDelta = (d) => `${d < 0 ? '−' : '+'}${Math.abs(d).toFixed(0)}°`;
+
 export function initAf() {
   const root = document.querySelector('[data-demo="af"]');
   const canvas = root.querySelector('canvas');
   const stepBtn = root.querySelector('#af-step');
   const resetBtn = root.querySelector('#af-reset');
+  const roundEl = root.querySelector('#af-round');
 
   const { scene, invalidate } = createScene(canvas, { cam: [3.5, 1.0, 9.6], target: [0, 0, 0] });
 
@@ -58,6 +85,7 @@ export function initAf() {
   const resGroups = [];
   const qCur = [];
   const cOff = [], nOff = []; // C(i)、N(i) 在组内的局部偏移
+  const hingeVis = [];        // 每残基的 φ/ψ 铰链高亮（套管 + 度数小标），挂局部系自动跟刚体
   for (let i = 0; i < N_RES; i++) {
     const [nPt, caPt, cPt] = bb0[i];
     const g = new THREE.Group();
@@ -77,6 +105,29 @@ export function initAf() {
       vecArrow(new THREE.Vector3(0, 1, 0), AXES_LEN, 0x54b06a),
       vecArrow(new THREE.Vector3(0, 0, 1), AXES_LEN, 0x5c7cf0)
     );
+    // φ（N–Cα，绿）/ ψ（Cα–C，蓝）铰链高亮：套管 + ±度数小标，默认隐藏；
+    // 挂在组的局部系里，残基怎么转都贴在键上（站点铰链色约定：φ 绿 ψ 蓝 ω 红）
+    const nrmL = nL.clone().cross(cL).normalize(); // 局部系里的肽平面法向
+    const hingeTube = (end, color) => {
+      const m = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.034, 0.034, 1, 10),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 })
+      );
+      m.scale.set(1, end.length(), 1);
+      m.position.copy(end).multiplyScalar(0.5);
+      m.quaternion.setFromUnitVectors(UP, end.clone().normalize());
+      m.visible = false;
+      return m;
+    };
+    const phiTube = hingeTube(nL, 0x54b06a);
+    const psiTube = hingeTube(cL, 0x5c7cf0);
+    const phiLbl = makeDeltaLabel(0x54b06a);
+    const psiLbl = makeDeltaLabel(0x5c7cf0);
+    phiLbl.position.copy(nL).multiplyScalar(0.5).addScaledVector(nrmL, 0.16);
+    psiLbl.position.copy(cL).multiplyScalar(0.5).addScaledVector(nrmL, 0.16);
+    phiLbl.visible = psiLbl.visible = false;
+    g.add(phiTube, psiTube, phiLbl, psiLbl);
+    hingeVis.push({ phiTube, psiTube, phiLbl, psiLbl });
     g.quaternion.copy(q0);
     scene.add(g);
     resGroups.push(g);
@@ -145,18 +196,30 @@ export function initAf() {
   function applyStep() {
     const rng = Math.random;
     // 一轮「预测更新」：每个铰链抽一个小旋转（沿链传播），外加一个整体刚体小旋转
+    const dphi = phis.map(() => (rng() * 2 - 1) * HINGE_JITTER);
+    const dpsi = psis.map(() => (rng() * 2 - 1) * HINGE_JITTER);
+    const spinDeg = (rng() * 2 - 1) * SPIN_JITTER;
     const spinT = new THREE.Quaternion()
-      .setFromAxisAngle(randUnit(rng), (rng() * 2 - 1) * SPIN_JITTER * DEG)
+      .setFromAxisAngle(randUnit(rng), spinDeg * DEG)
       .multiply(spin); // 世界系左乘：整体姿态在现有基础上再转
-    runTo(
-      phis.map((v) => v + (rng() * 2 - 1) * HINGE_JITTER),
-      psis.map((v) => v + (rng() * 2 - 1) * HINGE_JITTER),
-      spinT,
-      850
-    );
+    // 本轮更新量上铰链：绿 φ / 蓝 ψ 套管 + ±度数小标，保留到下一轮或复位
+    hingeVis.forEach((h, i) => {
+      h.phiLbl.setText(fmtDelta(dphi[i]));
+      h.psiLbl.setText(fmtDelta(dpsi[i]));
+      h.phiTube.visible = h.psiTube.visible = true;
+      h.phiLbl.visible = h.psiLbl.visible = true;
+    });
+    roundEl.innerHTML =
+      `本轮：每个残基的 φ/ψ 铰链小旋转如图中标注（绿 φ、蓝 ψ）；整体刚体小旋转 <b>${fmtDelta(spinDeg)}</b>。`;
+    runTo(phis.map((v, i) => v + dphi[i]), psis.map((v, i) => v + dpsi[i]), spinT, 850);
   }
 
   function reset() {
+    hingeVis.forEach((h) => {
+      h.phiTube.visible = h.psiTube.visible = false;
+      h.phiLbl.visible = h.psiLbl.visible = false;
+    });
+    roundEl.textContent = '';
     runTo(new Array(N_RES).fill(HOME.phi), new Array(N_RES).fill(HOME.psi), new THREE.Quaternion(), 600);
   }
 
