@@ -1,8 +1,11 @@
 // demo-backbone.js — 「骨架折叠机」：φ/ψ/ω/χ 实时重建两个残基的原子
 // 几何内核在 backbone-geom.js；本模块只管网格、高亮与解说
 import * as THREE from 'three';
-import { createScene, quatReadout, textSprite } from './scene-kit.js';
-import { computeChain, residueFrame, makeAtom, makeBond, setBond, COL } from './backbone-geom.js';
+import { createScene, quatReadout, textSprite, animate } from './scene-kit.js';
+import {
+  computeChain, residueFrame, makeAtom, makeBond, setBond, makeBondPair, setBondPair,
+  COL, RAD, BCOL,
+} from './backbone-geom.js';
 
 export function initBackbone() {
   const root = document.querySelector('[data-demo="backbone"]');
@@ -29,18 +32,19 @@ export function initBackbone() {
 
   const { scene, invalidate } = createScene(canvas, { cam: [4.6, 3.8, 8.2], target: [0, 2.0, 0] });
 
-  // —— 网格对象：骨架 6 原子 + 侧链 5 原子 + 羰基 O×2 ——
-  const atoms = ['N', 'CA', 'C', 'N', 'CA', 'C'].map((k) => makeAtom(k === 'CA' ? 0.2 : 0.17, COL[k]));
-  const scAtoms = [0.145, 0.145, 0.145, 0.145, 0.145].map((r) => makeAtom(r, COL.S));
-  const oAtoms = [makeAtom(0.16, COL.O), makeAtom(0.16, COL.O)];
+  // —— 网格对象：骨架 6 原子 + 侧链 5 原子 + 羰基 O×2（球径/球色取共享表）——
+  const atoms = ['N', 'CA', 'C', 'N', 'CA', 'C'].map((k) => makeAtom(RAD[k], COL[k]));
+  const scAtoms = [0, 1, 2, 3, 4].map(() => makeAtom(RAD.SC, COL.S));
+  const oAtoms = [makeAtom(RAD.O, COL.O), makeAtom(RAD.O, COL.O)];
   const bbPairs = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]];
-  const bbBonds = bbPairs.map(() => makeBond(0x8d97a3));
+  const bbBonds = bbPairs.map(() => makeBond(BCOL.bb));
   // -1 代表骨架上的 CA2（pos[4]）
   const scBondPairs = [[-1, 0], [0, 1], [1, 2], [2, 3], [3, 4]];
-  const scBonds = scBondPairs.map(() => makeBond(0x3f7352));
-  const oBonds = [makeBond(0x9a5258), makeBond(0x9a5258)];
+  const scBonds = scBondPairs.map(() => makeBond(BCOL.sc));
+  // 羰基 C=O：全站统一红色双线
+  const oPairs = [makeBondPair(BCOL.co), makeBondPair(BCOL.co)];
 
-  [...atoms, ...scAtoms, ...oAtoms, ...bbBonds, ...scBonds, ...oBonds].forEach((m) => scene.add(m));
+  [...atoms, ...scAtoms, ...oAtoms, ...bbBonds, ...scBonds, ...oPairs.flat()].forEach((m) => scene.add(m));
 
   // 残基 2 的局部坐标系三轴（AF 的 frame：x→C，z 指向 N 侧）
   const frame = new THREE.Group();
@@ -89,8 +93,8 @@ export function initBackbone() {
     }
 
     oAtoms.forEach((m, i) => m.position.copy(oPos[i]));
-    setBond(oBonds[0], pos[2], oPos[0]);
-    setBond(oBonds[1], pos[5], oPos[1]);
+    setBondPair(oPairs[0], pos[2], oPos[0]);
+    setBondPair(oPairs[1], pos[5], oPos[1]);
 
     const q = residueFrame(pos[3], pos[4], pos[5]);
     frame.position.copy(pos[4]);
@@ -106,7 +110,7 @@ export function initBackbone() {
   }
 
   // —— 扭转角高亮：四个原子 + 旋转轴亮起、其余压暗，配联动解说 ——
-  const allMeshes = [...atoms, ...scAtoms, ...bbBonds, ...scBonds, ...oAtoms, ...oBonds];
+  const allMeshes = [...atoms, ...scAtoms, ...bbBonds, ...scBonds, ...oAtoms, ...oPairs.flat()];
   for (const m of allMeshes) m.userData.baseColor = m.material.color.clone();
 
   const axisRing = new THREE.Group();
@@ -182,6 +186,18 @@ export function initBackbone() {
   root.addEventListener('pointerleave', clearHighlight);
 
   for (const s of Object.values(sliders)) s.addEventListener('input', computeAtoms);
+  // ω 被肽键锁死：滑块只允许撬开 ~15° 观察，松手弹回 180°（与肽键演示同一要求）
+  sliders.omega.addEventListener('change', () => {
+    const from = Number(sliders.omega.value);
+    if (from === 180) return;
+    animate({
+      dur: 450,
+      tick: (e) => {
+        sliders.omega.value = String(Math.round(from + (180 - from) * e));
+        computeAtoms();
+      },
+    });
+  });
   for (const r of chiRows) r.slider.addEventListener('input', computeAtoms);
   countBtns.forEach((b) =>
     b.addEventListener('click', () => {

@@ -228,19 +228,20 @@
       再往下那段主链——一段按 α 螺旋角度长出来的真实骨架——每套坐标架就骑在一个 Cα 上
       （蓝球 = N、骨白球 = Cα、琥珀球 = C，三色箭头 = 残基系的轴）：
       <strong>t 定它的位置，q 定它的朝向</strong>。
-      演示里每轮更新时，残基的原子跟着自己的坐标架一起转（t 不挪；真实 AlphaFold 两者都动）；AlphaFold 每轮预测会微调每个 q
-      （四元数乘法 + 归一化，永远是光滑的小旋转）和 t，一轮轮逼近真实结构。
+      AlphaFold 每轮预测会微调每个残基的 q（四元数乘法 + 归一化，永远是光滑的小旋转）和 t，一轮轮逼近真实结构。
+      但动法有约束：<strong>肽基平面是锁死的</strong>（ω 转不动），更新只能发生在平面两侧的单键铰链上；
+      铰链一转就沿链传向 C 端，把下游残基一起带走——演示里就按这个规则来，每轮 t 与 q 同时更新。
     </p>
   </div>
   <div class="demo" data-demo="af">
-    <div class="demo-stage"><canvas aria-label="一串残基坐标系，每次预测更新做光滑的小幅旋转"></canvas></div>
+    <div class="demo-stage"><canvas aria-label="一串残基坐标系，每次预测更新绕 φ/ψ 铰链小幅旋转，肽基平面保持锁死"></canvas></div>
     <div class="demo-side">
       <div class="controls">
         <button class="btn primary" id="af-step">模拟一轮预测更新</button>
         <button class="btn ghost" id="af-reset">复位</button>
       </div>
       <div class="formula" id="af-formula">q ← normalize( q ⊗ Δq )</div>
-      <p class="mini-note">琥珀色<strong>双线</strong> = 肽键（部分双键，刚性不可转）；灰色单线 = 可转的单键。「刚性」指<strong>不能绕肽键自转</strong>（ω≈180°）——它的空间位置并不固定，随两侧残基的 frame 一起动。这里只让 <b>q</b> 动（每轮一个小旋转）；真实 AlphaFold 每轮<strong>同时更新 t 与 q</strong>，并重新预测扭转角。连按几次看迭代——折叠机（04 节）右侧的 t、q 读数就是同一套东西的实时数值。</p>
+      <p class="mini-note">琥珀色<strong>双线</strong> = 肽键（部分双键，刚性不可转）；灰色单线 = 可转的单键。「刚性」指<strong>不能绕肽键自转</strong>（ω 锁死在 180°）——它的空间位置并不固定，会跟着两侧的铰链动。所以每轮的 Δq 不是乱抽的：它只能来自肽基平面两侧 φ、ψ 两个铰链（04 节会专门讲）的小旋转，并沿链传播——t 与 q 一起变，但键长、键角、肽基平面始终保持刚性，琥珀双线的长度一分不变。连按几次看迭代——折叠机（04 节）右侧的 t、q 读数就是同一套东西的实时数值。</p>
     </div>
   </div>
 
@@ -489,8 +490,8 @@
         <span class="val" id="bb-psi-val">-47°</span>
       </div>
       <div class="slider-row">
-        <label for="bb-omega" style="color:var(--text)">ω₁</label>
-        <input type="range" id="bb-omega" min="-180" max="180" step="1" value="180">
+        <label for="bb-omega" style="color:var(--text)" title="被肽键锁死：只能撬开 ~15° 观察，松手弹回">ω₁（锁死）</label>
+        <input type="range" id="bb-omega" min="165" max="180" step="1" value="180">
         <span class="val" id="bb-omega-val">180°</span>
       </div>
       <div class="slider-row">
@@ -570,7 +571,7 @@
       </div>
       <div class="formula" id="pp-read" style="white-space:normal"></div>
       <div class="warn" id="pp-warn">ω 被锁死：绕肽键扭转会破坏共面性——势垒 ~20 kcal/mol，实际结构只允许偏离几度（此处夸张到 ±15° 便于观察），弹回。</div>
-      <p class="mini-note">灰膜 = 肽平面；琥珀双线 = 肽键 C–N；红色双线 = C=O；彩色杆 = 当前转动的铰链轴。</p>
+      <p class="mini-note">球色：蓝 = N、琥珀 = C、红 = O、骨白 = 两侧的 Cα、<strong>小白球 = N 上的酰胺氢 H</strong>（它是氢，不是第二个中心碳）。灰膜 = 肽平面；琥珀双线 = 肽键 C–N；红色双线 = C=O；彩色杆 = 当前转动的铰链轴。</p>
     </div>
   </div>
 </section>

@@ -3,8 +3,18 @@
 import * as THREE from 'three';
 import { DEG } from './scene-kit.js';
 
-export const BOND = { nCa: 1.458, caC: 1.525, cN: 1.329, cO: 1.231, sc: 1.52 };
-export const ANGLE = { nCaC: 111.2, caCN: 116.2, cNCa: 121.7, sc: 109.5, caCb: 110.5 };
+export const BOND = { nCa: 1.458, caC: 1.525, cN: 1.329, cO: 1.231, sc: 1.52, nH: 1.01 };
+export const ANGLE = { nCaC: 111.2, caCN: 116.2, cNCa: 121.7, sc: 109.5, caCb: 110.5, ncO: 122.7, cnH: 119.4 };
+
+// —— 全站统一分子样式：所有 3D 分子演示共用这几张表，禁止各演示私写硬值 ——
+// 球径（Å 尺度场景；demo-af 等半尺场景再乘各自.scene 缩放）；约定 Cα 最大
+export const RAD = { N: 0.17, CA: 0.2, C: 0.17, O: 0.16, SC: 0.145, H: 0.08 };
+// 单键键径、N–H 细键径、双线参数（线径、两线间距）
+export const BOND_R = 0.055;
+export const BOND_R_H = 0.03;
+export const DBL = { r: 0.04, off: 0.07 };
+// 键色：主链单键 / 侧链单键 / 羰基 C=O / 肽键 C–N / N–H
+export const BCOL = { bb: 0x8d97a3, sc: 0x3f7352, co: 0xe5626a, pep: 0xd99a4e, nh: 0xb9c2cc };
 
 // 经典 NeRF：给 A,B,C 与 键长|CD|、键角∠BCD、二面角ABCD（IUPAC 约定，数值验证过符号），放 D
 export function placeAtom(av, bv, cv, bond, angleDeg, dihedralDeg) {
@@ -58,25 +68,28 @@ export function residueFrame(N, CA, C) {
   return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
 }
 
-// 直链主链：同一组 φ/ψ/ω 走到底（α 螺旋取 (-47, 180, -57) 即得螺旋形态），n 个残基
+// 直链主链：按 φ/ψ/ω 走到底（α 螺旋取 (-47, 180, -57) 即得螺旋形态），n 个残基
+// φ/ψ 可传每残基数组（各铰链独立取值），ω 只收标量——肽平面锁死，全链共用
 // 返回 [[N, Cα, C] × n]
 export function computeBackbone(n, { psi = -47, omega = 180, phi = -57 } = {}) {
+  const at = (v, i) => (Array.isArray(v) ? v[i] : v);
   const N0 = new THREE.Vector3(BOND.nCa, 0, 0);
   const CA0 = new THREE.Vector3(0, 0, 0);
   const C0 = new THREE.Vector3(Math.cos(ANGLE.nCaC * DEG), Math.sin(ANGLE.nCaC * DEG), 0).multiplyScalar(BOND.caC);
   const bb = [[N0, CA0, C0]];
   for (let i = 1; i < n; i++) {
     const [pN, pCA, pC] = bb[i - 1];
-    const Ni = placeAtom(pN, pCA, pC, BOND.cN, ANGLE.caCN, psi);
+    // Ni 绕 ψ(i-1) 铰链（Cα–C 轴）放置，Ci 绕 φ(i) 铰链（N–Cα 轴）放置
+    const Ni = placeAtom(pN, pCA, pC, BOND.cN, ANGLE.caCN, at(psi, i - 1));
     const CAi = placeAtom(pCA, pC, Ni, BOND.nCa, ANGLE.cNCa, omega);
-    const Ci = placeAtom(pC, Ni, CAi, BOND.caC, ANGLE.nCaC, phi);
+    const Ci = placeAtom(pC, Ni, CAi, BOND.caC, ANGLE.nCaC, at(phi, i));
     bb.push([Ni, CAi, Ci]);
   }
   return bb;
 }
 
 // —— 网格工厂 ——
-export const COL = { N: 0x5c7cf0, CA: 0xd8d2c4, C: 0xd99a4e, S: 0x54b06a, O: 0xe5626a };
+export const COL = { N: 0x5c7cf0, CA: 0xd8d2c4, C: 0xd99a4e, S: 0x54b06a, O: 0xe5626a, H: 0xe8e8e8 };
 
 export function makeAtom(radius, color) {
   return new THREE.Mesh(
@@ -84,7 +97,7 @@ export function makeAtom(radius, color) {
     new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.08 })
   );
 }
-export function makeBond(color, r = 0.055) {
+export function makeBond(color, r = BOND_R) {
   return new THREE.Mesh(
     new THREE.CylinderGeometry(r, r, 1, 10),
     new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.05 })
@@ -97,4 +110,24 @@ export function setBond(mesh, p, q) {
   mesh.scale.set(1, len, 1);
   mesh.position.copy(p).add(q).multiplyScalar(0.5);
   mesh.quaternion.setFromUnitVectors(UP, dir.normalize());
+}
+
+// 双线键（羰基 C=O、肽键 C–N 全站统一走这里）：两根平行细柱，共享材质便于整体闪highlight
+export function makeBondPair(color, r = DBL.r) {
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.4 });
+  return [0, 1].map(() => new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 10), mat));
+}
+export function setBondPair(meshes, p, q, off = DBL.off, shrink = 0.94) {
+  const mid = new THREE.Vector3().addVectors(p, q).multiplyScalar(0.5);
+  const dir = new THREE.Vector3().subVectors(q, p);
+  const len = dir.length();
+  dir.normalize();
+  const perp = Math.abs(dir.y) < 0.9
+    ? new THREE.Vector3().crossVectors(dir, UP).normalize()
+    : new THREE.Vector3().crossVectors(dir, new THREE.Vector3(1, 0, 0)).normalize();
+  meshes.forEach((m, i) => {
+    m.scale.set(1, len * shrink, 1);
+    m.position.copy(mid).addScaledVector(perp, (i === 0 ? -1 : 1) * off);
+    m.quaternion.setFromUnitVectors(UP, dir);
+  });
 }

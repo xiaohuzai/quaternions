@@ -2,20 +2,24 @@
 // 三个按钮分别绕三根键试转：φ/ψ 在两个规范位姿间摆动且肽平面保持共面；
 // ω 只允许弹开几度就弹回，此时 Cα′ 会翘出肽平面薄膜——「非平面构型」直接可见
 import * as THREE from 'three';
-import { createScene, animate, vecArrow, DEG } from './scene-kit.js';
-import { makeAtom, COL } from './backbone-geom.js';
+import { createScene, animate, textSprite, DEG } from './scene-kit.js';
+import {
+  makeAtom, makeBond, setBond, makeBondPair, setBondPair,
+  COL, RAD, BOND, ANGLE, BOND_R, BOND_R_H, BCOL,
+} from './backbone-geom.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const KEYS = ['Ci', 'Nn', 'O', 'CAi', 'H', 'CAn'];
 
-// 平面构型（trans，ω=180°）的基准布局：肽键 C–N 沿 +x 摆平
+// 平面构型（trans，ω=180°）的基准布局：肽键 C–N 沿 +x 摆平；键长键角全取共享 BOND/ANGLE 表
+const polar = (len, deg) => new THREE.Vector3(len * Math.cos(deg * DEG), len * Math.sin(deg * DEG), 0);
 const base = {
   Ci: new THREE.Vector3(0, 0, 0),
-  Nn: new THREE.Vector3(1.33, 0, 0),
-  O: new THREE.Vector3(1.23 * Math.cos(123 * DEG), 1.23 * Math.sin(123 * DEG), 0),
-  CAi: new THREE.Vector3(1.53 * Math.cos(-117 * DEG), 1.53 * Math.sin(-117 * DEG), 0),
-  H: new THREE.Vector3(1.33 + 0.99 * Math.cos(-120 * DEG), 0.99 * Math.sin(-120 * DEG), 0),
-  CAn: new THREE.Vector3(1.33 + 1.46 * Math.cos(58.3 * DEG), 1.46 * Math.sin(58.3 * DEG), 0),
+  Nn: new THREE.Vector3(BOND.cN, 0, 0),
+  O: polar(BOND.cO, ANGLE.ncO),                       // ∠N–C–O
+  CAi: polar(BOND.caC, -ANGLE.caCN),                  // ∠N–C–Cα
+  H: new THREE.Vector3(BOND.cN, 0, 0).add(polar(BOND.nH, 180 + ANGLE.cnH)),      // ∠C–N–H，与 Cα′ 分居轴两侧（trans）
+  CAn: new THREE.Vector3(BOND.cN, 0, 0).add(polar(BOND.nCa, 180 - ANGLE.cNCa)),  // ∠C–N–Cα′
 };
 
 // 规范位姿（按钮在两档间切换，不会越点越乱）
@@ -30,10 +34,10 @@ export function initPeptide() {
 
   const { scene, invalidate } = createScene(canvas, { cam: [1.3, 4.6, 5.4], target: [0.5, 0, 0] });
 
-  // —— 原子（球径统一 ≈ 键径 3 倍）——
+  // —— 原子（球径/球色取共享表）——
   const spec = {
-    Ci: [0.17, COL.C], Nn: [0.17, COL.N], CAi: [0.18, COL.CA], CAn: [0.17, COL.CA],
-    O: [0.15, COL.O], H: [0.08, 0xe8e8e8],
+    Ci: [RAD.C, COL.C], Nn: [RAD.N, COL.N], CAi: [RAD.CA, COL.CA], CAn: [RAD.CA, COL.CA],
+    O: [RAD.O, COL.O], H: [RAD.H, COL.H],
   };
   const pos = {};
   const meshes = {};
@@ -43,25 +47,33 @@ export function initPeptide() {
     scene.add(meshes[k]);
   }
 
-  // —— 键（持久网格，每帧按当前原子位置摆放）——
-  const matFor = {};
-  const bondMat = (c) => (matFor[c] ??= new THREE.MeshStandardMaterial({ color: c, roughness: 0.4 }));
-  const bonds = [];
-  const addBond = (a, b, color, r = 0.055, lines = 1) => {
-    const meshes2 = [];
-    for (let i = 0; i < lines; i++) {
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 10), bondMat(color));
-      scene.add(m);
-      meshes2.push(m);
-    }
-    bonds.push({ a, b, r, lines, meshes: meshes2 });
+  // —— 原子标签（与折叠机同一规格，跟帧移动）：H 是 N 上的酰胺氢，不是碳 ——
+  const LABEL = {
+    Ci: ['C', '#d99a4e'], Nn: ['N', '#5c7cf0'], O: ['O', '#e5626a'],
+    CAi: ['Cα', '#d8d2c4'], CAn: ['Cα′', '#d8d2c4'], H: ['H', '#f2f2f2'],
   };
-  addBond('CAi', 'Ci', 0x8d97a3);           // ψ 的铰链轴（可转）
-  addBond('Nn', 'CAn', 0x8d97a3);           // φ 的下游
-  addBond('Nn', 'H', 0xb9c2cc, 0.03);
-  addBond('Ci', 'O', 0xe5626a, 0.04, 2);    // C=O
-  addBond('Ci', 'Nn', 0xd99a4e, 0.04, 2);   // 肽键 C–N（ω 的锁死轴）
-  const peptideMat = bondMat(0xd99a4e);
+  const labels = {};
+  for (const k of KEYS) {
+    const sp = textSprite(LABEL[k][0], LABEL[k][1], { scale: 0.34, italic: false, size: 64, font: '600 56px Georgia, serif' });
+    scene.add(sp);
+    labels[k] = sp;
+  }
+
+  // —— 键（持久网格，每帧按当前原子位置摆放）——
+  const bonds = [];
+  const addBond = (a, b, color, r = BOND_R) => {
+    const m = makeBond(color, r);
+    scene.add(m);
+    bonds.push({ a, b, mesh: m });
+  };
+  addBond('CAi', 'Ci', BCOL.bb);         // ψ 的铰链轴（可转）
+  addBond('Nn', 'CAn', BCOL.bb);         // φ 的下游
+  addBond('Nn', 'H', BCOL.nh, BOND_R_H);
+  // 双线键统一走 makeBondPair：C=O 红色双线、肽键琥珀双线（ω 的锁死轴）
+  const coPair = makeBondPair(BCOL.co);
+  const pepPair = makeBondPair(BCOL.pep);
+  [...coPair, ...pepPair].forEach((m) => scene.add(m));
+  const peptideMat = pepPair[0].material;
 
   // —— 肽平面薄膜（由 C、O、N 三点定义，适度放大）——
   const film = new THREE.Mesh(
@@ -107,29 +119,18 @@ export function initPeptide() {
 
     for (const k of KEYS) meshes[k].position.copy(pos[k]);
 
-    for (const bd of bonds) {
-      const pa = pos[bd.a], pb = pos[bd.b];
-      const mid = new THREE.Vector3().addVectors(pa, pb).multiplyScalar(0.5);
-      const dir = new THREE.Vector3().subVectors(pb, pa);
-      const len = dir.length();
-      dir.normalize();
-      if (bd.lines === 1) {
-        const [m] = bd.meshes;
-        m.scale.set(1, len, 1);
-        m.position.copy(mid);
-        m.quaternion.setFromUnitVectors(UP, dir);
-      } else {
-        const perp = Math.abs(dir.y) < 0.9
-          ? new THREE.Vector3().crossVectors(dir, UP).normalize()
-          : new THREE.Vector3().crossVectors(dir, new THREE.Vector3(1, 0, 0)).normalize();
-        bd.meshes.forEach((m, i) => {
-          const off = (i === 0 ? -1 : 1) * 0.07;
-          m.scale.set(1, len * 0.94, 1);
-          m.position.copy(mid).addScaledVector(perp, off);
-          m.quaternion.setFromUnitVectors(UP, dir);
-        });
-      }
+    // 标签沿「原子 → 全分子质心」的反方向外推——逐个验过，该方向恰好在每个原子的键向间隙里
+    const cen = new THREE.Vector3();
+    for (const k of KEYS) cen.add(pos[k]);
+    cen.multiplyScalar(1 / KEYS.length);
+    for (const k of KEYS) {
+      const dir = new THREE.Vector3().subVectors(pos[k], cen).normalize();
+      labels[k].position.copy(pos[k]).addScaledVector(dir, spec[k][0] + 0.27);
     }
+
+    for (const bd of bonds) setBond(bd.mesh, pos[bd.a], pos[bd.b]);
+    setBondPair(coPair, pos.Ci, pos.O);
+    setBondPair(pepPair, pos.Ci, pos.Nn);
 
     // 肽平面薄膜：C、O、N 三点定平面，适度放大
     const g = new THREE.Vector3().addVectors(pos.Ci, pos.O).add(pos.Nn).multiplyScalar(1 / 3);

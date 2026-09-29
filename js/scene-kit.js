@@ -294,8 +294,8 @@ function buildFrameGlyph(s = 1, labels = true) {
   // 原子色与 backbone-geom.COL 保持一致（此处不 import 那边以避免环依赖）
   const N_COLOR = 0x5c7cf0, CA_COLOR = 0xd8d2c4, C_COLOR = 0xd99a4e;
 
-  // Cα（原点）与 N、C 原子——∠N-Cα-C = 111°，C 摆在 +x 上
-  const ca = new THREE.Mesh(new THREE.SphereGeometry(0.11 * s, 18, 12), mat(CA_COLOR, 0.45));
+  // Cα（原点）与 N、C 原子——∠N-Cα-C = 111°，C 摆在 +x 上；球径约定与 RAD 表一致：Cα 最大
+  const ca = new THREE.Mesh(new THREE.SphereGeometry(0.19 * s, 18, 12), mat(CA_COLOR, 0.45));
   const n = new THREE.Mesh(new THREE.SphereGeometry(0.16 * s, 18, 12), mat(N_COLOR));
   const c = new THREE.Mesh(new THREE.SphereGeometry(0.16 * s, 18, 12), mat(C_COLOR));
   const nPos = new THREE.Vector3(Math.cos(111 * DEG), Math.sin(111 * DEG), 0).multiplyScalar(0.58 * s);

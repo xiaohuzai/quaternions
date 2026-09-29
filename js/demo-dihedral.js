@@ -1,7 +1,7 @@
 // demo-dihedral.js — 02 节：四个原子的二面角，拖滑块绕 B–C 转，看 A 端与 D 端的夹角
 import * as THREE from 'three';
 import { createScene, animate } from './scene-kit.js';
-import { placeAtom, makeAtom, makeBond, setBond } from './backbone-geom.js';
+import { placeAtom, makeAtom, makeBond, setBond, BCOL } from './backbone-geom.js';
 
 const A = new THREE.Vector3(-2.1, 0.5, 0);
 const B = new THREE.Vector3(-0.7, -0.35, 0);
@@ -22,7 +22,7 @@ export function initDihedral() {
     makeAtom(0.19, 0x8d97a3), // C
     makeAtom(0.19, 0x61707f), // D
   ];
-  const bonds = [makeBond(0x8d97a3), makeBond(0xd99a4e), makeBond(0x8d97a3)];
+  const bonds = [makeBond(BCOL.bb), makeBond(BCOL.pep), makeBond(BCOL.bb)]; // 中间 B–C 用琥珀色标出旋转轴键
   atoms.forEach((m) => scene.add(m));
   bonds.forEach((m) => scene.add(m));
 

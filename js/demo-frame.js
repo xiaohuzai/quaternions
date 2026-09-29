@@ -2,7 +2,7 @@
 // 关键对照：键角（化学键之间）随滑块变，轴角（x∧y）永远 90°——正交的是坐标系，不是化学键
 import * as THREE from 'three';
 import { createScene, animate, textSprite, vecArrow, DEG } from './scene-kit.js';
-import { makeAtom, makeBond, setBond, COL } from './backbone-geom.js';
+import { makeAtom, makeBond, setBond, COL, RAD, BCOL } from './backbone-geom.js';
 
 function tubeAlong(points, colorHex, opacity = 1, radius = 0.014) {
   const curve = new THREE.CatmullRomCurve3(points);
@@ -32,12 +32,12 @@ export function initFrame() {
 
   const { scene, invalidate } = createScene(canvas, { cam: [3.0, 2.4, 4.4], target: [0.15, 0.15, 0] });
 
-  // —— 原子（真实几何，111° 键角）——
-  const ca = makeAtom(0.2, COL.CA);
-  const n = makeAtom(0.17, COL.N);
-  const c = makeAtom(0.17, COL.C);
-  const bondNCa = makeBond(0x8d97a3);
-  const bondCaC = makeBond(0x8d97a3);
+  // —— 原子（真实几何，111° 键角；球径/键色取共享表）——
+  const ca = makeAtom(RAD.CA, COL.CA);
+  const n = makeAtom(RAD.N, COL.N);
+  const c = makeAtom(RAD.C, COL.C);
+  const bondNCa = makeBond(BCOL.bb);
+  const bondCaC = makeBond(BCOL.bb);
   scene.add(ca, n, c, bondNCa, bondCaC);
   const cPos = new THREE.Vector3(0.62, 0, 0);
 
